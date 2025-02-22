@@ -30,6 +30,20 @@ export async function deletePlaylist(id: number): Promise<void> {
     return await invoke('delete_playlist', { id });
 }
 
-export async function fetchChannels(id: number): Promise<string> {
+export interface Channel {
+    id?: number;
+    playlist_id: number;
+    stream_id: string;
+    name: string;
+    stream_type: string;
+    stream_url: string;
+    created_at?: string;
+}
+
+export async function fetchChannels(id: number): Promise<Channel[]> {
     return await invoke('fetch_channels', { id });
+}
+
+export async function getChannels(playlist_id: number): Promise<Channel[]> {
+    return await invoke('get_channels', { playlist_id });
 }

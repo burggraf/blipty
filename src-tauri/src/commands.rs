@@ -18,6 +18,8 @@ pub enum Error {
     Http(#[from] reqwest::Error),
     #[error("URL error: {0}")]
     Url(#[from] url::ParseError),
+    #[error("Serde error: {0}")]
+    Serde(#[from] serde_json::Error),
     #[error("Internal error: {0}")]
     Internal(String),
 }
@@ -41,6 +43,18 @@ impl From<std::io::Error> for Error {
 
 // Database connection wrapper
 pub struct DbConnection(pub Mutex<Connection>);
+
+// Channel struct for serialization/deserialization
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Channel {
+    pub id: Option<i64>,
+    pub playlist_id: i64,
+    pub stream_id: String,
+    pub name: String,
+    pub stream_type: String,
+    pub stream_url: String,
+    pub created_at: Option<String>,
+}
 
 // Playlist struct for serialization/deserialization
 #[derive(Debug, Serialize, Deserialize)]
@@ -69,6 +83,22 @@ pub fn init_db(conn: &Connection) -> SqliteResult<()> {
         )",
         [],
     )?;
+
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS channels (
+            id INTEGER PRIMARY KEY,
+            playlist_id INTEGER NOT NULL,
+            stream_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            stream_type TEXT NOT NULL,
+            stream_url TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE,
+            UNIQUE(playlist_id, stream_id)
+        )",
+        [],
+    )?;
+
     Ok(())
 }
 
@@ -182,13 +212,13 @@ pub async fn delete_playlist(db: State<'_, DbConnection>, id: i64) -> Result<(),
 
 // Command to fetch channels for a playlist
 #[tauri::command]
-pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<String, Error> {
+pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<Channel>, Error> {
     // Get playlist details from the database
     let (server_url, username, password) = {
         let conn = db.0.lock().unwrap();
         let mut stmt = conn.prepare(
-            "SELECT server_url, username, password 
-             FROM playlists 
+            "SELECT server_url, username, password
+             FROM playlists
              WHERE id = ?",
         )?;
 
@@ -225,7 +255,168 @@ pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Stri
     let response = client.get(url).send().await?;
     let body = response.text().await?;
 
-    println!("Response received: {}", body);
+    println!("Raw response: {}", body);
 
-    Ok(body)
+    // Try to parse as a JSON Value first to inspect structure
+    let json_value: serde_json::Value = serde_json::from_str(&body)
+        .map_err(|e| Error::Internal(format!("Failed to parse JSON: {}", e)))?;
+
+    println!(
+        "JSON structure: {}",
+        serde_json::to_string_pretty(&json_value)
+            .unwrap_or_else(|_| "Failed to format JSON".to_string())
+    );
+
+    // Check if it's an array or needs to be accessed differently
+    let channels = if json_value.is_array() {
+        json_value.as_array().unwrap().to_vec()
+    } else if let Some(obj) = json_value.as_object() {
+        // Log available keys at root level
+        println!("Available root keys: {:?}", obj.keys().collect::<Vec<_>>());
+
+        // Try common wrapping properties
+        if let Some(arr) = obj.get("channels").and_then(|v| v.as_array()) {
+            arr.to_vec()
+        } else if let Some(arr) = obj.get("data").and_then(|v| v.as_array()) {
+            arr.to_vec()
+        } else if let Some(arr) = obj.get("live_streams").and_then(|v| v.as_array()) {
+            arr.to_vec()
+        } else {
+            // If we can't find a known array property, look at each root property
+            for (key, value) in obj {
+                println!("Key '{}' contains: {}", key, value);
+            }
+            return Err(Error::Internal(format!(
+                "Could not find channel array in response. Available keys: {:?}",
+                obj.keys().collect::<Vec<_>>()
+            )));
+        }
+    } else {
+        return Err(Error::Internal(
+            "Response is neither array nor object".to_string(),
+        ));
+    };
+
+    println!("Found {} items in response", channels.len());
+
+    let mut stored_channels = Vec::new();
+    let now = Utc::now().to_rfc3339();
+
+    // Prepare channel data before database operations
+    let channel_data: Vec<(String, String, String, String)> = channels
+        .iter()
+        .map(|channel| {
+            println!("Processing channel: {}", channel);
+
+            // Helper function to get value as string from various types
+            let get_string_value = |value: &serde_json::Value| {
+                value
+                    .as_str()
+                    .map(|s| s.to_string())
+                    .or_else(|| value.as_i64().map(|n| n.to_string()))
+                    .or_else(|| value.as_u64().map(|n| n.to_string()))
+                    .or_else(|| value.as_f64().map(|n| n.to_string()))
+            };
+
+            // Try multiple possible field names for stream_id
+            let stream_id = get_string_value(&channel["stream_id"])
+                .or_else(|| get_string_value(&channel["id"]))
+                .or_else(|| get_string_value(&channel["num"]))
+                .ok_or_else(|| Error::Internal("Missing stream_id/id/num".to_string()))?;
+
+            // Get channel name
+            let name = channel["name"]
+                .as_str()
+                .or_else(|| channel["title"].as_str())
+                .ok_or_else(|| Error::Internal("Missing name/title".to_string()))?
+                .to_string();
+
+            // Get stream type
+            let stream_type = channel["stream_type"]
+                .as_str()
+                .or_else(|| channel["type"].as_str())
+                .unwrap_or("live")
+                .to_string();
+
+            // For this provider, construct the stream URL using the stream_id
+            // This matches the format used by most IPTV providers
+            let stream_url = format!(
+                "{}/live/{}/{}/{}",
+                server_url.trim_end_matches("/player_api.php"),
+                username,
+                password,
+                stream_id
+            );
+
+            Ok((stream_id, name, stream_type, stream_url))
+        })
+        .collect::<Result<Vec<_>, Error>>()?;
+
+    // Perform database operations
+    {
+        let mut conn = db.0.lock().unwrap();
+        let tx = conn.transaction()?;
+
+        // Clear existing channels
+        tx.execute("DELETE FROM channels WHERE playlist_id = ?", [id])?;
+
+        // Insert new channels
+        {
+            let mut stmt = tx.prepare(
+                "INSERT INTO channels (playlist_id, stream_id, name, stream_type, stream_url, created_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            )?;
+
+            for (stream_id, name, stream_type, stream_url) in &channel_data {
+                stmt.execute(params![id, stream_id, name, stream_type, stream_url, now])?;
+
+                let last_id = tx.last_insert_rowid();
+                stored_channels.push(Channel {
+                    id: Some(last_id),
+                    playlist_id: id,
+                    stream_id: stream_id.clone(),
+                    name: name.clone(),
+                    stream_type: stream_type.clone(),
+                    stream_url: stream_url.clone(),
+                    created_at: Some(now.clone()),
+                });
+            }
+        }
+
+        tx.commit()?;
+    }
+
+    println!("Stored {} channels in database", stored_channels.len());
+
+    Ok(stored_channels)
+}
+
+// Command to get channels for a playlist
+#[tauri::command]
+pub async fn get_channels(
+    db: State<'_, DbConnection>,
+    playlist_id: i64,
+) -> Result<Vec<Channel>, Error> {
+    let conn = db.0.lock().unwrap();
+    let mut stmt = conn.prepare(
+        "SELECT id, playlist_id, stream_id, name, stream_type, stream_url, created_at
+         FROM channels
+         WHERE playlist_id = ?",
+    )?;
+
+    let channels = stmt
+        .query_map([playlist_id], |row| {
+            Ok(Channel {
+                id: Some(row.get(0)?),
+                playlist_id: row.get(1)?,
+                stream_id: row.get(2)?,
+                name: row.get(3)?,
+                stream_type: row.get(4)?,
+                stream_url: row.get(5)?,
+                created_at: row.get(6)?,
+            })
+        })?
+        .collect::<SqliteResult<Vec<_>>>()?;
+
+    Ok(channels)
 }
