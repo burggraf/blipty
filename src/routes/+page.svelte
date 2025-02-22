@@ -3,78 +3,70 @@
 	import * as Card from '$lib/components/ui/card';
 	import PlaylistForm from '$lib/components/playlist-form.svelte';
 	import { onMount } from 'svelte';
-	import { initializeDatabase } from '$lib/commands';
+	import { initializeDatabase, getPlaylists } from '$lib/commands';
+	import type { Playlist } from '$lib/commands';
 
-	let showForm = false;
+	let providers: Playlist[] = [];
 	let error = '';
+	let loading = true;
 
 	onMount(async () => {
 		try {
 			await initializeDatabase();
+			providers = await getPlaylists();
 		} catch (e: any) {
 			error = e.message || 'Failed to initialize database';
 			console.error('Database initialization error:', e);
+		} finally {
+			loading = false;
 		}
 	});
-
-	function toggleForm() {
-		showForm = !showForm;
-	}
 </script>
 
 <div
 	class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 transition-all duration-500"
 >
-	{#if error}
+	{#if loading}
+		<Card.Root class="w-[380px] backdrop-blur-sm bg-white/90 dark:bg-gray-800/90">
+			<Card.Content class="p-6">
+				<p class="text-center text-gray-500">Loading...</p>
+			</Card.Content>
+		</Card.Root>
+	{:else if error}
 		<Card.Root class="w-[380px] backdrop-blur-sm bg-white/90 dark:bg-gray-800/90">
 			<Card.Content class="p-6">
 				<p class="text-red-500 text-center">{error}</p>
 			</Card.Content>
 		</Card.Root>
-	{:else if !showForm}
-		<Card.Root
-			class="w-[380px] backdrop-blur-sm bg-white/90 dark:bg-gray-800/90 shadow-xl hover:shadow-2xl transition-all duration-300 rounded-xl [--ring:267_100%_60%]"
-		>
+	{:else if providers.length > 0}
+		<Card.Root class="w-[380px] backdrop-blur-sm bg-white/90 dark:bg-gray-800/90">
 			<Card.Header class="space-y-2">
 				<Card.Title
 					class="text-3xl font-bold text-center bg-gradient-to-r from-indigo-500 to-pink-500 bg-clip-text text-transparent"
 				>
-					IPTV Playlists
+					IPTV Providers
 				</Card.Title>
 			</Card.Header>
-			<Card.Content class="p-6">
+			<Card.Content class="p-6 space-y-4">
+				{#each providers as provider}
+					<div class="border rounded-lg p-4 space-y-2 bg-white/50 dark:bg-gray-700/50">
+						<div class="flex justify-between items-center">
+							<h3 class="font-semibold text-lg">{provider.name}</h3>
+							<div class="text-sm text-gray-500">{provider.server_url}</div>
+						</div>
+						<div class="text-sm text-gray-500">User: {provider.username}</div>
+					</div>
+				{/each}
+
 				<Button
-					onclick={toggleForm}
-					class="w-full bg-gradient-to-r from-indigo-500 to-pink-500 hover:opacity-90 transition-opacity duration-200 py-6 text-lg font-semibold"
+					onclick={() => (providers = [])}
+					class="w-full bg-gradient-to-r from-indigo-500 to-pink-500 hover:opacity-90 transition-opacity duration-200"
 				>
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						class="h-6 w-6 mr-2 inline-block"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M12 4v16m8-8H4"
-						/>
-					</svg>
-					Add New Playlist
+					Add Another Provider
 				</Button>
 			</Card.Content>
 		</Card.Root>
 	{:else}
-		<div class="relative">
-			<PlaylistForm />
-			<Button
-				onclick={toggleForm}
-				class="absolute -top-4 -right-4 rounded-full w-8 h-8 p-0 bg-gray-800 hover:bg-gray-700 transition-colors"
-				variant="secondary"
-			>
-				✕
-			</Button>
-		</div>
+		<PlaylistForm />
 	{/if}
 </div>

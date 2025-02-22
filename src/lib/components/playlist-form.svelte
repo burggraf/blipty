@@ -29,16 +29,10 @@
 				is_active: true
 			});
 
-			// Reset form
-			name = '';
-			serverUrl = '';
-			username = '';
-			password = '';
-			error = '';
-
-			// TODO: Add success notification or redirect
+			// Refresh the page to show updated provider list
+			window.location.reload();
 		} catch (e: any) {
-			error = e.message || 'Failed to add playlist';
+			error = e.message || 'Failed to add provider';
 		} finally {
 			loading = false;
 		}
@@ -47,7 +41,7 @@
 
 <Card.Root class="w-[380px]">
 	<Card.Header>
-		<Card.Title class="text-2xl font-bold">Add New Playlist</Card.Title>
+		<Card.Title class="text-2xl font-bold">Add New Provider</Card.Title>
 		<Card.Description>Enter your IPTV provider details below</Card.Description>
 	</Card.Header>
 
@@ -106,7 +100,7 @@
 				disabled={loading}
 				class="w-full bg-gradient-to-r from-indigo-500 to-pink-500 hover:opacity-90 transition-opacity duration-200"
 			>
-				{loading ? 'Adding...' : 'Add Playlist'}
+				{loading ? 'Adding...' : 'Add Provider'}
 			</Button>
 		</form>
 	</Card.Content>

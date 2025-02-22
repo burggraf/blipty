@@ -7,7 +7,10 @@ use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    simple_logger::init_with_level(log::LevelFilter::Error).unwrap();
+    simple_logger::SimpleLogger::new()
+        .with_level(log::LevelFilter::Error)
+        .init()
+        .unwrap();
     tauri::Builder::default()
         .setup(|app| {
             let app_dir = app
