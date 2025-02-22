@@ -516,34 +516,3 @@ pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<
 
     Ok(stored_channels)
 }
-
-// Command to get channels for a playlist
-#[tauri::command]
-pub async fn get_channels(
-    db: State<'_, DbConnection>,
-    playlist_id: i64,
-) -> Result<Vec<Channel>, Error> {
-    let conn = db.0.lock().unwrap();
-    let mut stmt = conn.prepare(
-        "SELECT id, playlist_id, category_id, stream_id, name, stream_type, stream_url, created_at
-         FROM channels
-         WHERE playlist_id = ?",
-    )?;
-
-    let channels = stmt
-        .query_map([playlist_id], |row| {
-            Ok(Channel {
-                id: Some(row.get(0)?),
-                playlist_id: row.get(1)?,
-                category_id: row.get(2)?,
-                stream_id: row.get(3)?,
-                name: row.get(4)?,
-                stream_type: row.get(5)?,
-                stream_url: row.get(6)?,
-                created_at: row.get(7)?,
-            })
-        })?
-        .collect::<SqliteResult<Vec<_>>>()?;
-
-    Ok(channels)
-}
