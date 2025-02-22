@@ -43,7 +43,8 @@ pub fn run() {
             initialize_database,
             add_playlist,
             get_playlists,
-            delete_playlist
+            delete_playlist,
+            update_playlist
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -132,6 +132,40 @@ pub async fn get_playlists(db: State<'_, DbConnection>) -> Result<Vec<Playlist>,
     Ok(playlists)
 }
 
+// Command to update a playlist
+#[tauri::command]
+pub async fn update_playlist(
+    db: State<'_, DbConnection>,
+    id: i64,
+    playlist: Playlist,
+) -> Result<(), Error> {
+    let conn = db.0.lock().unwrap();
+    let now = Utc::now().to_rfc3339();
+
+    let mut stmt = conn.prepare(
+        "UPDATE playlists 
+         SET name = ?1, 
+             server_url = ?2, 
+             username = ?3, 
+             password = ?4, 
+             last_updated = ?5, 
+             is_active = ?6
+         WHERE id = ?7",
+    )?;
+
+    stmt.execute(params![
+        playlist.name,
+        playlist.server_url,
+        playlist.username,
+        playlist.password,
+        now,
+        playlist.is_active,
+        id
+    ])?;
+
+    Ok(())
+}
+
 // Command to delete a playlist
 #[tauri::command]
 pub async fn delete_playlist(db: State<'_, DbConnection>, id: i64) -> Result<(), Error> {

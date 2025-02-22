@@ -22,6 +22,10 @@ export async function getPlaylists(): Promise<Playlist[]> {
     return await invoke('get_playlists');
 }
 
+export async function updatePlaylist(id: number, playlist: Playlist): Promise<void> {
+    return await invoke('update_playlist', { id, playlist });
+}
+
 export async function deletePlaylist(id: number): Promise<void> {
     return await invoke('delete_playlist', { id });
 }
