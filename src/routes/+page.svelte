@@ -1,15 +1,11 @@
 <script lang="ts">
-	import { GlobalState, preventDefault } from '$lib';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import { Input } from '$lib/components/ui/input/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
 
-	const gs = new GlobalState();
-
-	$inspect(gs.greet, gs.name);
-
-	const onsubmit = preventDefault(() => gs.nlen && gs.submit());
-	const onclick = () => gs.reset();
+	const handleAddPlaylist = () => {
+		// Add playlist functionality will be implemented here
+		console.log('Add playlist clicked');
+	};
 </script>
 
 <div
@@ -22,39 +18,30 @@
 			<Card.Title
 				class="text-3xl font-bold text-center bg-gradient-to-r from-indigo-500 to-pink-500 bg-clip-text text-transparent"
 			>
-				{#if gs.greet}
-					<p>{gs.greet}</p>
-					<small class="text-sm">(from Rust side)</small>
-				{:else}
-					<p>Hello World!</p>
-				{/if}
+				Playlists
 			</Card.Title>
 		</Card.Header>
 		<Card.Content class="p-6">
-			<form {onsubmit} class="space-y-6">
-				{#if !gs.greet}
-					<Input
-						type="text"
-						placeholder="Enter your username"
-						bind:value={gs.name}
-						class="w-full px-4 py-2 rounded-lg outline-none border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-purple-500 focus-visible:ring-purple-500 focus-visible:ring-offset-2 transition-all duration-200"
+			<Button
+				onclick={handleAddPlaylist}
+				class="w-full bg-gradient-to-r from-indigo-500 to-pink-500 hover:opacity-90 transition-opacity duration-200 py-6 text-lg font-semibold"
+			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					class="h-6 w-6 mr-2 inline-block"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M12 4v16m8-8H4"
 					/>
-				{/if}
-				{#if gs.name && !gs.greet}
-					<Button
-						type="submit"
-						class="w-full bg-gradient-to-r from-indigo-500 to-pink-500 hover:opacity-90 transition-opacity duration-200"
-					>
-						Say Hello
-					</Button>
-				{:else if gs.greet}
-					<Button
-						{onclick}
-						class="w-full bg-gradient-to-r from-indigo-500 to-pink-500 hover:opacity-90 transition-opacity duration-200"
-						>Reset</Button
-					>
-				{/if}
-			</form>
+				</svg>
+				Add New Playlist
+			</Button>
 		</Card.Content>
 	</Card.Root>
 </div>
