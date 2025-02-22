@@ -5,6 +5,9 @@
 	import { onMount } from 'svelte';
 	import { initializeDatabase, getPlaylists, deletePlaylist } from '$lib/commands';
 	import type { Playlist } from '$lib/commands';
+	import { buttonVariants } from '$lib/components/ui/button/button.svelte';
+	import { cn } from '$lib/utils';
+	import { Pencil, Trash2 } from 'lucide-svelte';
 
 	let providers: Playlist[] = [];
 	let error = '';
@@ -24,40 +27,28 @@
 	});
 
 	function handleDelete(provider: Playlist) {
-		// First debug log
 		console.log('1. Delete clicked for provider:', provider);
-
-		// Immediate alert to confirm the function is running
-		alert(`About to process delete for: ${provider.name}`);
-
 		try {
-			// Log before deletion
 			console.log('2. Calling deletePlaylist with ID:', provider.id);
-
-			// Actually call the delete function
 			deletePlaylist(provider.id!)
 				.then(() => {
-					// Log success
 					console.log('3. Delete successful');
-
-					// Update UI
 					providers = providers.filter((p) => p.id !== provider.id);
 					console.log('4. Updated providers list:', providers);
-
-					// Show success message
-					alert('Provider deleted successfully');
 				})
 				.catch((e) => {
-					// Log error with full details
 					console.error('Delete failed:', e);
-					console.error('Full error object:', JSON.stringify(e, null, 2));
-					alert(`Failed to delete provider: ${e.message || 'Unknown error'}`);
+					error = e.message || 'Failed to delete provider';
 				});
 		} catch (e) {
-			// Log any immediate errors
 			console.error('Immediate error:', e);
-			alert(`Immediate error: ${e}`);
+			error = `Failed to delete provider: ${e}`;
 		}
+	}
+
+	function handleEdit(provider: Playlist) {
+		// TODO: Implement edit functionality
+		console.log('Edit clicked for provider:', provider.id);
 	}
 </script>
 
@@ -93,17 +84,28 @@
 						<h3 class="font-semibold text-lg">{provider.name}</h3>
 						<div class="flex gap-2">
 							<button
-								class="bg-red-500 text-white px-4 py-2 rounded"
+								class={cn(buttonVariants({ variant: 'outline', size: 'icon' }))}
+								title="Edit {provider.name}"
+								on:click={() => handleEdit(provider)}
+							>
+								<Pencil class="h-4 w-4" />
+							</button>
+							<button
+								class={cn(buttonVariants({ variant: 'destructive', size: 'icon' }))}
+								title="Delete {provider.name}"
 								on:click={() => handleDelete(provider)}
 							>
-								Delete {provider.name}
+								<Trash2 class="h-4 w-4" />
 							</button>
 						</div>
 					</div>
 				{/each}
 
 				<button
-					class="w-full bg-blue-500 text-white px-4 py-2 rounded"
+					class={cn(
+						buttonVariants({ variant: 'default' }),
+						'w-full bg-gradient-to-r from-indigo-500 to-pink-500 hover:opacity-90 transition-opacity duration-200'
+					)}
 					on:click={() => {
 						console.log('Add clicked');
 						providers = [];
