@@ -14,7 +14,10 @@
 	let error = '';
 	let loading = false;
 	let editingProvider: Playlist | null = null;
-	let loadingProviders = new Set<number>();
+	// Make loadingProviders reactive by using a writable store
+	import { writable } from 'svelte/store';
+	const loadingProviders = writable(new Set<number>());
+	$: loadingSet = $loadingProviders;
 
 	onMount(async () => {
 		try {
@@ -31,10 +34,13 @@
 	});
 
 	async function handleProviderClick(provider: Playlist) {
-		if (loadingProviders.has(provider.id!)) return;
+		if ($loadingProviders.has(provider.id!)) return;
 
 		try {
-			loadingProviders.add(provider.id!);
+			loadingProviders.update((set) => {
+				set.add(provider.id!);
+				return set;
+			});
 			error = '';
 			console.log(`Fetching channels for provider: ${provider.name} (ID: ${provider.id})`);
 
@@ -44,7 +50,10 @@
 			console.error('Failed to fetch channels:', e);
 			error = e.message || 'Failed to fetch channels';
 		} finally {
-			loadingProviders.delete(provider.id!);
+			loadingProviders.update((set) => {
+				set.delete(provider.id!);
+				return set;
+			});
 		}
 	}
 
@@ -123,10 +132,10 @@
 						<button
 							class="font-semibold text-lg text-left hover:text-indigo-600 transition-colors duration-200"
 							on:click={() => handleProviderClick(provider)}
-							disabled={loadingProviders.has(provider.id!)}
+							disabled={$loadingProviders.has(provider.id!)}
 						>
 							{provider.name}
-							{#if loadingProviders.has(provider.id!)}
+							{#if $loadingProviders.has(provider.id!)}
 								<span class="text-sm text-gray-500 ml-2">Loading...</span>
 							{/if}
 						</button>
