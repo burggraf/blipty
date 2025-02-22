@@ -131,3 +131,11 @@ pub async fn get_playlists(db: State<'_, DbConnection>) -> Result<Vec<Playlist>,
 
     Ok(playlists)
 }
+
+// Command to delete a playlist
+#[tauri::command]
+pub async fn delete_playlist(db: State<'_, DbConnection>, id: i64) -> Result<(), Error> {
+    let conn = db.0.lock().unwrap();
+    conn.execute("DELETE FROM playlists WHERE id = ?", [id])?;
+    Ok(())
+}

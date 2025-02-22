@@ -42,7 +42,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             initialize_database,
             add_playlist,
-            get_playlists
+            get_playlists,
+            delete_playlist
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

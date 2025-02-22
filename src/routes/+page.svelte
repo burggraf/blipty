@@ -3,7 +3,7 @@
 	import * as Card from '$lib/components/ui/card';
 	import PlaylistForm from '$lib/components/playlist-form.svelte';
 	import { onMount } from 'svelte';
-	import { initializeDatabase, getPlaylists } from '$lib/commands';
+	import { initializeDatabase, getPlaylists, deletePlaylist } from '$lib/commands';
 	import type { Playlist } from '$lib/commands';
 
 	let providers: Playlist[] = [];
@@ -14,6 +14,7 @@
 		try {
 			await initializeDatabase();
 			providers = await getPlaylists();
+			console.log('Loaded providers:', providers);
 		} catch (e: any) {
 			error = e.message || 'Failed to initialize database';
 			console.error('Database initialization error:', e);
@@ -21,6 +22,43 @@
 			loading = false;
 		}
 	});
+
+	function handleDelete(provider: Playlist) {
+		// First debug log
+		console.log('1. Delete clicked for provider:', provider);
+
+		// Immediate alert to confirm the function is running
+		alert(`About to process delete for: ${provider.name}`);
+
+		try {
+			// Log before deletion
+			console.log('2. Calling deletePlaylist with ID:', provider.id);
+
+			// Actually call the delete function
+			deletePlaylist(provider.id!)
+				.then(() => {
+					// Log success
+					console.log('3. Delete successful');
+
+					// Update UI
+					providers = providers.filter((p) => p.id !== provider.id);
+					console.log('4. Updated providers list:', providers);
+
+					// Show success message
+					alert('Provider deleted successfully');
+				})
+				.catch((e) => {
+					// Log error with full details
+					console.error('Delete failed:', e);
+					console.error('Full error object:', JSON.stringify(e, null, 2));
+					alert(`Failed to delete provider: ${e.message || 'Unknown error'}`);
+				});
+		} catch (e) {
+			// Log any immediate errors
+			console.error('Immediate error:', e);
+			alert(`Immediate error: ${e}`);
+		}
+	}
 </script>
 
 <div
@@ -49,21 +87,30 @@
 			</Card.Header>
 			<Card.Content class="p-6 space-y-4">
 				{#each providers as provider}
-					<div class="border rounded-lg p-4 space-y-2 bg-white/50 dark:bg-gray-700/50">
-						<div class="flex justify-between items-center">
-							<h3 class="font-semibold text-lg">{provider.name}</h3>
-							<div class="text-sm text-gray-500">{provider.server_url}</div>
+					<div
+						class="border rounded-lg p-4 flex items-center justify-between bg-white/50 dark:bg-gray-700/50"
+					>
+						<h3 class="font-semibold text-lg">{provider.name}</h3>
+						<div class="flex gap-2">
+							<button
+								class="bg-red-500 text-white px-4 py-2 rounded"
+								on:click={() => handleDelete(provider)}
+							>
+								Delete {provider.name}
+							</button>
 						</div>
-						<div class="text-sm text-gray-500">User: {provider.username}</div>
 					</div>
 				{/each}
 
-				<Button
-					onclick={() => (providers = [])}
-					class="w-full bg-gradient-to-r from-indigo-500 to-pink-500 hover:opacity-90 transition-opacity duration-200"
+				<button
+					class="w-full bg-blue-500 text-white px-4 py-2 rounded"
+					on:click={() => {
+						console.log('Add clicked');
+						providers = [];
+					}}
 				>
 					Add Another Provider
-				</Button>
+				</button>
 			</Card.Content>
 		</Card.Root>
 	{:else}
