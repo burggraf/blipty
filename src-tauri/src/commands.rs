@@ -1,9 +1,11 @@
 use chrono::prelude::*;
+use reqwest;
 use rusqlite::{params, Connection, Result as SqliteResult};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::{AppHandle, Manager, Runtime, State};
+use url::Url;
 
 // Error handling
 #[derive(Debug, thiserror::Error)]
@@ -12,6 +14,10 @@ pub enum Error {
     Database(#[from] rusqlite::Error),
     #[error("IO error: {0}")]
     Io(String),
+    #[error("HTTP error: {0}")]
+    Http(#[from] reqwest::Error),
+    #[error("URL error: {0}")]
+    Url(#[from] url::ParseError),
     #[error("Internal error: {0}")]
     Internal(String),
 }
@@ -172,4 +178,54 @@ pub async fn delete_playlist(db: State<'_, DbConnection>, id: i64) -> Result<(),
     let conn = db.0.lock().unwrap();
     conn.execute("DELETE FROM playlists WHERE id = ?", [id])?;
     Ok(())
+}
+
+// Command to fetch channels for a playlist
+#[tauri::command]
+pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<String, Error> {
+    // Get playlist details from the database
+    let (server_url, username, password) = {
+        let conn = db.0.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT server_url, username, password 
+             FROM playlists 
+             WHERE id = ?",
+        )?;
+
+        let result = stmt.query_row([id], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+            ))
+        })?;
+        result
+    }; // MutexGuard is dropped here
+
+    println!("Retrieved provider details. Building URL...");
+
+    // Parse the server URL to handle potential port numbers
+    let mut url = Url::parse(&server_url)?;
+
+    // Ensure the path ends with player_api.php
+    if !url.path().ends_with("player_api.php") {
+        url.set_path("player_api.php");
+    }
+
+    // Add query parameters
+    url.query_pairs_mut()
+        .append_pair("username", &username)
+        .append_pair("password", &password)
+        .append_pair("action", "get_live_streams");
+
+    println!("Fetching channels from URL: {}", url);
+
+    // Make the HTTP request
+    let client = reqwest::Client::new();
+    let response = client.get(url).send().await?;
+    let body = response.text().await?;
+
+    println!("Response received: {}", body);
+
+    Ok(body)
 }

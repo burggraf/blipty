@@ -29,3 +29,7 @@ export async function updatePlaylist(id: number, playlist: Playlist): Promise<vo
 export async function deletePlaylist(id: number): Promise<void> {
     return await invoke('delete_playlist', { id });
 }
+
+export async function fetchChannels(id: number): Promise<string> {
+    return await invoke('fetch_channels', { id });
+}

@@ -4,7 +4,7 @@
 	import PlaylistForm from '$lib/components/playlist-form.svelte';
 	import PlaylistEditForm from '$lib/components/playlist-edit-form.svelte';
 	import { onMount } from 'svelte';
-	import { initializeDatabase, getPlaylists, deletePlaylist } from '$lib/commands';
+	import { initializeDatabase, getPlaylists, deletePlaylist, fetchChannels } from '$lib/commands';
 	import type { Playlist } from '$lib/commands';
 	import { buttonVariants } from '$lib/components/ui/button/button.svelte';
 	import { cn } from '$lib/utils';
@@ -12,11 +12,13 @@
 
 	let providers: Playlist[] = [];
 	let error = '';
-	let loading = true;
+	let loading = false;
 	let editingProvider: Playlist | null = null;
+	let loadingChannels = false;
 
 	onMount(async () => {
 		try {
+			loading = true;
 			await initializeDatabase();
 			providers = await getPlaylists();
 			console.log('Loaded providers:', providers);
@@ -27,6 +29,24 @@
 			loading = false;
 		}
 	});
+
+	async function handleProviderClick(provider: Playlist) {
+		if (loadingChannels) return;
+
+		try {
+			loadingChannels = true;
+			error = '';
+			console.log(`Fetching channels for provider: ${provider.name} (ID: ${provider.id})`);
+
+			const results = await fetchChannels(provider.id!);
+			console.log('Channel results:', results);
+		} catch (e: any) {
+			console.error('Failed to fetch channels:', e);
+			error = e.message || 'Failed to fetch channels';
+		} finally {
+			loadingChannels = false;
+		}
+	}
 
 	function handleEdit(provider: Playlist) {
 		editingProvider = provider;
@@ -100,19 +120,28 @@
 					<div
 						class="border rounded-lg p-4 flex items-center justify-between bg-white/50 dark:bg-gray-700/50"
 					>
-						<h3 class="font-semibold text-lg">{provider.name}</h3>
+						<button
+							class="font-semibold text-lg text-left hover:text-indigo-600 transition-colors duration-200"
+							on:click={() => handleProviderClick(provider)}
+							disabled={loadingChannels}
+						>
+							{provider.name}
+							{#if loadingChannels}
+								<span class="text-sm text-gray-500 ml-2">Loading...</span>
+							{/if}
+						</button>
 						<div class="flex gap-2">
 							<button
 								class={cn(buttonVariants({ variant: 'outline', size: 'icon' }))}
 								title="Edit {provider.name}"
-								onclick={() => handleEdit(provider)}
+								on:click={() => handleEdit(provider)}
 							>
 								<Pencil class="h-4 w-4" />
 							</button>
 							<button
 								class={cn(buttonVariants({ variant: 'destructive', size: 'icon' }))}
 								title="Delete {provider.name}"
-								onclick={() => handleDelete(provider)}
+								on:click={() => handleDelete(provider)}
 							>
 								<Trash2 class="h-4 w-4" />
 							</button>
@@ -125,7 +154,7 @@
 						buttonVariants({ variant: 'default' }),
 						'w-full bg-gradient-to-r from-indigo-500 to-pink-500 hover:opacity-90 transition-opacity duration-200'
 					)}
-					onclick={() => {
+					on:click={() => {
 						console.log('Add clicked');
 						providers = [];
 					}}
