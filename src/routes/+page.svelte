@@ -2,8 +2,20 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import PlaylistForm from '$lib/components/playlist-form.svelte';
+	import { onMount } from 'svelte';
+	import { initializeDatabase } from '$lib/commands';
 
 	let showForm = false;
+	let error = '';
+
+	onMount(async () => {
+		try {
+			await initializeDatabase();
+		} catch (e: any) {
+			error = e.message || 'Failed to initialize database';
+			console.error('Database initialization error:', e);
+		}
+	});
 
 	function toggleForm() {
 		showForm = !showForm;
@@ -13,7 +25,13 @@
 <div
 	class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 transition-all duration-500"
 >
-	{#if !showForm}
+	{#if error}
+		<Card.Root class="w-[380px] backdrop-blur-sm bg-white/90 dark:bg-gray-800/90">
+			<Card.Content class="p-6">
+				<p class="text-red-500 text-center">{error}</p>
+			</Card.Content>
+		</Card.Root>
+	{:else if !showForm}
 		<Card.Root
 			class="w-[380px] backdrop-blur-sm bg-white/90 dark:bg-gray-800/90 shadow-xl hover:shadow-2xl transition-all duration-300 rounded-xl [--ring:267_100%_60%]"
 		>
