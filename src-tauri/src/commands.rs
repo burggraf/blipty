@@ -2,7 +2,6 @@ use chrono::prelude::*;
 use reqwest;
 use rusqlite::{params, Connection, Result as SqliteResult};
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::{AppHandle, Manager, Runtime, State};
 use url::Url;
@@ -239,42 +238,35 @@ pub async fn delete_playlist(db: State<'_, DbConnection>, id: i64) -> Result<(),
 // Command to fetch channels for a playlist
 #[tauri::command]
 pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<Channel>, Error> {
-    // First check if channels already exist for this playlist
-    let existing_channels = {
+    // Check if channels exist for this playlist and return them if found
+    {
         let conn = db.0.lock().unwrap();
-        let mut stmt = conn.prepare("SELECT COUNT(*) FROM channels WHERE playlist_id = ?")?;
+        let mut stmt = conn.prepare(
+            "SELECT id, playlist_id, category_id, stream_id, name, stream_type, stream_url, created_at
+             FROM channels
+             WHERE playlist_id = ?"
+        )?;
 
-        let count: i64 = stmt.query_row([id], |row| row.get(0))?;
+        let existing = stmt.query_map([id], |row| {
+            Ok(Channel {
+                id: Some(row.get(0)?),
+                playlist_id: row.get(1)?,
+                category_id: row.get(2)?,
+                stream_id: row.get(3)?,
+                name: row.get(4)?,
+                stream_type: row.get(5)?,
+                stream_url: row.get(6)?,
+                created_at: row.get(7)?,
+            })
+        })?;
 
-        if count > 0 {
-            // Channels exist, return them
-            let mut stmt = conn.prepare(
-                "SELECT id, playlist_id, category_id, stream_id, name, stream_type, stream_url, created_at
-                FROM channels
-                WHERE playlist_id = ?"
-            )?;
-
-            let channels = stmt
-                .query_map([id], |row| {
-                    Ok(Channel {
-                        id: Some(row.get(0)?),
-                        playlist_id: row.get(1)?,
-                        category_id: row.get(2)?,
-                        stream_id: row.get(3)?,
-                        name: row.get(4)?,
-                        stream_type: row.get(5)?,
-                        stream_url: row.get(6)?,
-                        created_at: row.get(7)?,
-                    })
-                })?
-                .collect::<SqliteResult<Vec<_>>>()?;
-
+        let channels: Vec<Channel> = existing.collect::<SqliteResult<Vec<_>>>()?;
+        if !channels.is_empty() {
             return Ok(channels);
         }
-        count
-    };
+    }
 
-    // No existing channels found, proceed with fetching
+    // No existing channels found, proceed with fetching new ones
     let (server_url, username, password) = {
         let conn = db.0.lock().unwrap();
         let mut stmt = conn.prepare(
@@ -291,7 +283,7 @@ pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<
             ))
         })?;
         result
-    }; // MutexGuard is dropped here
+    };
 
     println!("Retrieved provider details. Building URL...");
 
@@ -434,16 +426,6 @@ pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<
         .iter()
         .map(|channel| {
             println!("Processing channel: {}", channel);
-
-            // Helper function to get value as string from various types
-            let get_string_value = |value: &serde_json::Value| {
-                value
-                    .as_str()
-                    .map(|s| s.to_string())
-                    .or_else(|| value.as_i64().map(|n| n.to_string()))
-                    .or_else(|| value.as_u64().map(|n| n.to_string()))
-                    .or_else(|| value.as_f64().map(|n| n.to_string()))
-            };
 
             // Try multiple possible field names for stream_id
             let stream_id = get_string_value(&channel["stream_id"])

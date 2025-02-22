@@ -14,7 +14,7 @@
 	let error = '';
 	let loading = false;
 	let editingProvider: Playlist | null = null;
-	let loadingChannels = false;
+	let loadingProviders = new Set<number>();
 
 	onMount(async () => {
 		try {
@@ -31,10 +31,10 @@
 	});
 
 	async function handleProviderClick(provider: Playlist) {
-		if (loadingChannels) return;
+		if (loadingProviders.has(provider.id!)) return;
 
 		try {
-			loadingChannels = true;
+			loadingProviders.add(provider.id!);
 			error = '';
 			console.log(`Fetching channels for provider: ${provider.name} (ID: ${provider.id})`);
 
@@ -44,7 +44,7 @@
 			console.error('Failed to fetch channels:', e);
 			error = e.message || 'Failed to fetch channels';
 		} finally {
-			loadingChannels = false;
+			loadingProviders.delete(provider.id!);
 		}
 	}
 
@@ -123,10 +123,10 @@
 						<button
 							class="font-semibold text-lg text-left hover:text-indigo-600 transition-colors duration-200"
 							on:click={() => handleProviderClick(provider)}
-							disabled={loadingChannels}
+							disabled={loadingProviders.has(provider.id!)}
 						>
 							{provider.name}
-							{#if loadingChannels}
+							{#if loadingProviders.has(provider.id!)}
 								<span class="text-sm text-gray-500 ml-2">Loading...</span>
 							{/if}
 						</button>
