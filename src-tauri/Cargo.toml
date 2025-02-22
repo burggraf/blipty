@@ -21,3 +21,7 @@ tauri = { version = "2", features = [] }
 # tauri-plugin-shell = "2" # uncomment to use shell
 serde_json = "1"
 serde = { version = "1", features = ["derive"] }
+rusqlite = { version = "0.30.0", features = ["bundled"] }
+chrono = { version = "0.4", features = ["serde"] }
+anyhow = "1.0"
+thiserror = "1.0"

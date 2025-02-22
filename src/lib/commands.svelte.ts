@@ -1,37 +1,23 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from '@tauri-apps/api/tauri';
 
-export const preventDefault = <T extends Event>(fn: (e: T) => void): ((e: T) => void) => {
-	return (e: T) => {
-		e.preventDefault();
-		fn(e);
-	};
-};
+export interface Playlist {
+	id?: number;
+	name: string;
+	server_url: string;
+	username: string;
+	password: string;
+	last_updated?: string;
+	is_active: boolean;
+}
 
-export class GlobalState {
-	private _state = $state({ name: '', greet: '' });
+export async function initializeDatabase(): Promise<void> {
+	await invoke('initialize_database');
+}
 
-	get greet() {
-		return this._state.greet;
-	}
-	set greet(value: string) {
-		this._state.greet = value;
-	}
-	get name() {
-		return this._state.name;
-	}
-	set name(value: string) {
-		this._state.name = value;
-	}
-	get nlen() {
-		return this.name.length;
-	}
+export async function addPlaylist(playlist: Playlist): Promise<number> {
+	return await invoke('add_playlist', { playlist });
+}
 
-	async submit() {
-		this.greet = await invoke('greet', { name: this.name });
-	}
-
-	reset() {
-		this.name = '';
-		this.greet = '';
-	}
+export async function getPlaylists(): Promise<Playlist[]> {
+	return await invoke('get_playlists');
 }
