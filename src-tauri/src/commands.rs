@@ -239,7 +239,42 @@ pub async fn delete_playlist(db: State<'_, DbConnection>, id: i64) -> Result<(),
 // Command to fetch channels for a playlist
 #[tauri::command]
 pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<Channel>, Error> {
-    // Get playlist details from the database
+    // First check if channels already exist for this playlist
+    let existing_channels = {
+        let conn = db.0.lock().unwrap();
+        let mut stmt = conn.prepare("SELECT COUNT(*) FROM channels WHERE playlist_id = ?")?;
+
+        let count: i64 = stmt.query_row([id], |row| row.get(0))?;
+
+        if count > 0 {
+            // Channels exist, return them
+            let mut stmt = conn.prepare(
+                "SELECT id, playlist_id, category_id, stream_id, name, stream_type, stream_url, created_at
+                FROM channels
+                WHERE playlist_id = ?"
+            )?;
+
+            let channels = stmt
+                .query_map([id], |row| {
+                    Ok(Channel {
+                        id: Some(row.get(0)?),
+                        playlist_id: row.get(1)?,
+                        category_id: row.get(2)?,
+                        stream_id: row.get(3)?,
+                        name: row.get(4)?,
+                        stream_type: row.get(5)?,
+                        stream_url: row.get(6)?,
+                        created_at: row.get(7)?,
+                    })
+                })?
+                .collect::<SqliteResult<Vec<_>>>()?;
+
+            return Ok(channels);
+        }
+        count
+    };
+
+    // No existing channels found, proceed with fetching
     let (server_url, username, password) = {
         let conn = db.0.lock().unwrap();
         let mut stmt = conn.prepare(
