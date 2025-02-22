@@ -329,19 +329,68 @@ pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<
     let mut stored_categories = std::collections::HashMap::new();
     let now = Utc::now().to_rfc3339();
 
-    // First pass: collect unique categories
+    // Helper function to get value as string from various types
+    let get_string_value = |value: &serde_json::Value| {
+        value
+            .as_str()
+            .map(|s| s.to_string())
+            .or_else(|| value.as_i64().map(|n| n.to_string()))
+            .or_else(|| value.as_u64().map(|n| n.to_string()))
+            .or_else(|| value.as_f64().map(|n| n.to_string()))
+    };
+
+    // First: Fetch categories
+    let categories_url = {
+        let mut url = Url::parse(&server_url)?;
+        if !url.path().ends_with("player_api.php") {
+            url.set_path("player_api.php");
+        }
+        url.query_pairs_mut()
+            .clear()
+            .append_pair("username", &username)
+            .append_pair("password", &password)
+            .append_pair("action", "get_live_categories");
+        url
+    };
+
+    println!("Fetching categories from URL: {}", categories_url);
+
+    let categories_response = client.get(categories_url).send().await?;
+    let categories_body = categories_response.text().await?;
+    println!("Categories response: {}", categories_body);
+
+    let categories_json: Vec<serde_json::Value> = serde_json::from_str(&categories_body)
+        .map_err(|e| Error::Internal(format!("Failed to parse categories JSON: {}", e)))?;
+
+    // Extract categories with proper names
     let mut categories = std::collections::HashSet::new();
-    for channel in &channels {
+    for category in &categories_json {
         if let (Some(cat_id), Some(cat_name)) = (
-            channel["category_id"]
+            get_string_value(&category["category_id"])
+                .or_else(|| get_string_value(&category["id"])),
+            category["category_name"]
                 .as_str()
-                .or_else(|| channel["group"].as_str()),
-            channel["category_name"]
-                .as_str()
-                .or_else(|| channel["group_title"].as_str())
-                .or_else(|| channel["category_id"].as_str()),
+                .or_else(|| category["name"].as_str())
+                .map(|s| s.to_string()),
         ) {
-            categories.insert((cat_id.to_string(), cat_name.to_string()));
+            categories.insert((cat_id, cat_name));
+        }
+    }
+
+    // If no categories were found in the category response, fall back to channel data
+    if categories.is_empty() {
+        for channel in &channels {
+            if let (Some(cat_id), Some(cat_name)) = (
+                channel["category_id"]
+                    .as_str()
+                    .or_else(|| channel["group"].as_str()),
+                channel["category_name"]
+                    .as_str()
+                    .or_else(|| channel["group_title"].as_str())
+                    .or_else(|| channel["category_id"].as_str()),
+            ) {
+                categories.insert((cat_id.to_string(), cat_name.to_string()));
+            }
         }
     }
 
