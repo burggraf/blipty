@@ -44,11 +44,22 @@ impl From<std::io::Error> for Error {
 // Database connection wrapper
 pub struct DbConnection(pub Mutex<Connection>);
 
+// Category struct for serialization/deserialization
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Category {
+    pub id: Option<i64>,
+    pub playlist_id: i64,
+    pub category_id: String,
+    pub name: String,
+    pub created_at: Option<String>,
+}
+
 // Channel struct for serialization/deserialization
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Channel {
     pub id: Option<i64>,
     pub playlist_id: i64,
+    pub category_id: Option<String>,
     pub stream_id: String,
     pub name: String,
     pub stream_type: String,
@@ -85,15 +96,30 @@ pub fn init_db(conn: &Connection) -> SqliteResult<()> {
     )?;
 
     conn.execute(
+        "CREATE TABLE IF NOT EXISTS categories (
+            id INTEGER PRIMARY KEY,
+            playlist_id INTEGER NOT NULL,
+            category_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE,
+            UNIQUE(playlist_id, category_id)
+        )",
+        [],
+    )?;
+
+    conn.execute(
         "CREATE TABLE IF NOT EXISTS channels (
             id INTEGER PRIMARY KEY,
             playlist_id INTEGER NOT NULL,
+            category_id TEXT,
             stream_id TEXT NOT NULL,
             name TEXT NOT NULL,
             stream_type TEXT NOT NULL,
             stream_url TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE,
+            FOREIGN KEY (playlist_id, category_id) REFERENCES categories(playlist_id, category_id) ON DELETE SET NULL,
             UNIQUE(playlist_id, stream_id)
         )",
         [],
@@ -267,7 +293,7 @@ pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<
             .unwrap_or_else(|_| "Failed to format JSON".to_string())
     );
 
-    // Check if it's an array or needs to be accessed differently
+    // Handle different response formats
     let channels = if json_value.is_array() {
         json_value.as_array().unwrap().to_vec()
     } else if let Some(obj) = json_value.as_object() {
@@ -300,10 +326,27 @@ pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<
     println!("Found {} items in response", channels.len());
 
     let mut stored_channels = Vec::new();
+    let mut stored_categories = std::collections::HashMap::new();
     let now = Utc::now().to_rfc3339();
 
-    // Prepare channel data before database operations
-    let channel_data: Vec<(String, String, String, String)> = channels
+    // First pass: collect unique categories
+    let mut categories = std::collections::HashSet::new();
+    for channel in &channels {
+        if let (Some(cat_id), Some(cat_name)) = (
+            channel["category_id"]
+                .as_str()
+                .or_else(|| channel["group"].as_str()),
+            channel["category_name"]
+                .as_str()
+                .or_else(|| channel["group_title"].as_str())
+                .or_else(|| channel["category_id"].as_str()),
+        ) {
+            categories.insert((cat_id.to_string(), cat_name.to_string()));
+        }
+    }
+
+    // Process channel data
+    let channel_data: Vec<(String, Option<String>, String, String, String)> = channels
         .iter()
         .map(|channel| {
             println!("Processing channel: {}", channel);
@@ -324,6 +367,10 @@ pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<
                 .or_else(|| get_string_value(&channel["num"]))
                 .ok_or_else(|| Error::Internal("Missing stream_id/id/num".to_string()))?;
 
+            // Get category ID
+            let category_id = get_string_value(&channel["category_id"])
+                .or_else(|| get_string_value(&channel["group"]));
+
             // Get channel name
             let name = channel["name"]
                 .as_str()
@@ -339,7 +386,6 @@ pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<
                 .to_string();
 
             // For this provider, construct the stream URL using the stream_id
-            // This matches the format used by most IPTV providers
             let stream_url = format!(
                 "{}/live/{}/{}/{}",
                 server_url.trim_end_matches("/player_api.php"),
@@ -348,39 +394,53 @@ pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<
                 stream_id
             );
 
-            Ok((stream_id, name, stream_type, stream_url))
+            Ok((stream_id, category_id, name, stream_type, stream_url))
         })
         .collect::<Result<Vec<_>, Error>>()?;
 
-    // Perform database operations
+    // Store both categories and channels in a single transaction
     {
         let mut conn = db.0.lock().unwrap();
         let tx = conn.transaction()?;
 
-        // Clear existing channels
-        tx.execute("DELETE FROM channels WHERE playlist_id = ?", [id])?;
+        // Clear and insert categories
+        tx.execute("DELETE FROM categories WHERE playlist_id = ?", [id])?;
+        for (cat_id, cat_name) in &categories {
+            tx.execute(
+                "INSERT INTO categories (playlist_id, category_id, name, created_at) VALUES (?1, ?2, ?3, ?4)",
+                params![id, cat_id, cat_name, now],
+            )?;
+            stored_categories.insert(cat_id.clone(), cat_name.clone());
+        }
 
-        // Insert new channels
-        {
-            let mut stmt = tx.prepare(
-                "INSERT INTO channels (playlist_id, stream_id, name, stream_type, stream_url, created_at)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        // Clear and insert channels
+        tx.execute("DELETE FROM channels WHERE playlist_id = ?", [id])?;
+        for (stream_id, category_id, name, stream_type, stream_url) in &channel_data {
+            tx.execute(
+                "INSERT INTO channels (playlist_id, category_id, stream_id, name, stream_type, stream_url, created_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                params![
+                    id,
+                    category_id.as_ref().map(|s| s.as_str()),
+                    stream_id,
+                    name,
+                    stream_type,
+                    stream_url,
+                    now
+                ],
             )?;
 
-            for (stream_id, name, stream_type, stream_url) in &channel_data {
-                stmt.execute(params![id, stream_id, name, stream_type, stream_url, now])?;
-
-                let last_id = tx.last_insert_rowid();
-                stored_channels.push(Channel {
-                    id: Some(last_id),
-                    playlist_id: id,
-                    stream_id: stream_id.clone(),
-                    name: name.clone(),
-                    stream_type: stream_type.clone(),
-                    stream_url: stream_url.clone(),
-                    created_at: Some(now.clone()),
-                });
-            }
+            let last_id = tx.last_insert_rowid();
+            stored_channels.push(Channel {
+                id: Some(last_id),
+                playlist_id: id,
+                category_id: category_id.clone(),
+                stream_id: stream_id.clone(),
+                name: name.clone(),
+                stream_type: stream_type.clone(),
+                stream_url: stream_url.clone(),
+                created_at: Some(now.clone()),
+            });
         }
 
         tx.commit()?;
@@ -399,7 +459,7 @@ pub async fn get_channels(
 ) -> Result<Vec<Channel>, Error> {
     let conn = db.0.lock().unwrap();
     let mut stmt = conn.prepare(
-        "SELECT id, playlist_id, stream_id, name, stream_type, stream_url, created_at
+        "SELECT id, playlist_id, category_id, stream_id, name, stream_type, stream_url, created_at
          FROM channels
          WHERE playlist_id = ?",
     )?;
@@ -409,11 +469,12 @@ pub async fn get_channels(
             Ok(Channel {
                 id: Some(row.get(0)?),
                 playlist_id: row.get(1)?,
-                stream_id: row.get(2)?,
-                name: row.get(3)?,
-                stream_type: row.get(4)?,
-                stream_url: row.get(5)?,
-                created_at: row.get(6)?,
+                category_id: row.get(2)?,
+                stream_id: row.get(3)?,
+                name: row.get(4)?,
+                stream_type: row.get(5)?,
+                stream_url: row.get(6)?,
+                created_at: row.get(7)?,
             })
         })?
         .collect::<SqliteResult<Vec<_>>>()?;
