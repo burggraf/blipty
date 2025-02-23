@@ -1,8 +1,32 @@
 <script lang="ts">
 	import * as Accordion from '$lib/components/ui/accordion';
 	import type { Channel } from '$lib/commands';
+	import { setSelectedChannel, getSelectedChannel } from '$lib/commands';
+	import VideoPlayer from './video-player.svelte';
+	import { onMount } from 'svelte';
 
 	export let channels: Channel[];
+	export let playlist_id: number;
+
+	// Currently selected channel
+	let selectedChannel: Channel | null = null;
+
+	onMount(() => {
+		if (playlist_id) {
+			loadSelectedChannel();
+		}
+	});
+
+	// Load selected channel
+	async function loadSelectedChannel() {
+		try {
+			console.log('Loading selected channel for playlist:', playlist_id);
+			selectedChannel = await getSelectedChannel(playlist_id);
+			console.log('Selected channel:', selectedChannel);
+		} catch (error) {
+			console.error('Error loading selected channel:', error);
+		}
+	}
 
 	// Group channels by category
 	$: channelsByCategory = channels.reduce((acc, channel) => {
@@ -30,9 +54,28 @@
 			if (b.name === 'Uncategorized') return -1;
 			return a.name.localeCompare(b.name);
 		});
+
+	async function handleChannelClick(channel: Channel) {
+		if (channel.id) {
+			try {
+				console.log('Setting selected channel:', channel.id, 'for playlist:', playlist_id);
+				await setSelectedChannel(playlist_id, channel.id);
+				selectedChannel = channel;
+			} catch (error) {
+				console.error('Error setting selected channel:', error);
+			}
+		}
+	}
 </script>
 
-<div class="w-full max-w-3xl mx-auto space-y-2">
+<div class="w-full max-w-3xl mx-auto space-y-4">
+	{#if selectedChannel}
+		<div class="w-full">
+			<VideoPlayer src={selectedChannel.stream_url} />
+			<div class="mt-2 text-lg font-semibold">{selectedChannel.name}</div>
+		</div>
+	{/if}
+
 	<Accordion.Root type="single">
 		{#each categories as category (category.id)}
 			<Accordion.Item value={category.id}>
@@ -43,11 +86,14 @@
 				<Accordion.Content>
 					<div class="space-y-2 p-4">
 						{#each category.channels as channel (channel.stream_id)}
-							<div
-								class="border rounded-lg p-3 bg-white/50 dark:bg-gray-700/50 hover:bg-white/70 dark:hover:bg-gray-600/50 transition-colors"
+							<button
+								class="w-full text-left border rounded-lg p-3 bg-white/50 dark:bg-gray-700/50 hover:bg-white/70 dark:hover:bg-gray-600/50 transition-colors"
+								class:ring-2={selectedChannel?.id === channel.id}
+								class:ring-primary={selectedChannel?.id === channel.id}
+								on:click={() => handleChannelClick(channel)}
 							>
 								<div class="font-medium">{channel.name}</div>
-							</div>
+							</button>
 						{/each}
 					</div>
 				</Accordion.Content>

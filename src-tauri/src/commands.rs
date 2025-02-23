@@ -73,6 +73,19 @@ pub struct Playlist {
     pub is_active: bool,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetSelectedChannelArgs {
+    pub playlist_id: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SetSelectedChannelArgs {
+    pub playlist_id: i64,
+    pub channel_id: i64,
+}
+
 pub fn init_db(conn: &Connection) -> SqliteResult<()> {
     conn.execute(
         "CREATE TABLE IF NOT EXISTS playlists (
@@ -112,12 +125,22 @@ pub fn init_db(conn: &Connection) -> SqliteResult<()> {
             stream_url TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE,
-            FOREIGN KEY (playlist_id, category_id) REFERENCES categories(playlist_id, category_id) ON DELETE SET NULL,
             UNIQUE(playlist_id, stream_id)
         )",
         [],
     )?;
 
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS selected_channel (
+            playlist_id INTEGER PRIMARY KEY,
+            channel_id INTEGER NOT NULL,
+            FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE,
+            FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE
+        )",
+        [],
+    )?;
+
+    println!("Database schema initialized successfully");
     Ok(())
 }
 
@@ -225,7 +248,57 @@ pub async fn delete_playlist(db: State<'_, DbConnection>, id: i64) -> Result<(),
 }
 
 #[tauri::command]
+pub async fn set_selected_channel(
+    db: State<'_, DbConnection>,
+    args: SetSelectedChannelArgs,
+) -> Result<(), Error> {
+    let mut conn = db.0.lock().unwrap();
+    conn.execute(
+        "INSERT OR REPLACE INTO selected_channel (playlist_id, channel_id) VALUES (?1, ?2)",
+        params![args.playlist_id, args.channel_id],
+    )?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_selected_channel(
+    db: State<'_, DbConnection>,
+    args: GetSelectedChannelArgs,
+) -> Result<Option<Channel>, Error> {
+    println!("Getting selected channel for playlist: {:?}", args);
+    let mut conn = db.0.lock().unwrap();
+    let mut stmt = conn.prepare(
+        "SELECT c.* FROM channels c
+         INNER JOIN selected_channel sc ON c.id = sc.channel_id
+         WHERE sc.playlist_id = ?",
+    )?;
+
+    let result = stmt.query_row([args.playlist_id], |row| {
+        Ok(Channel {
+            id: Some(row.get(0)?),
+            playlist_id: row.get(1)?,
+            category_id: row.get(2)?,
+            category_name: row
+                .get::<_, Option<String>>(3)?
+                .unwrap_or_else(|| "Uncategorized".to_string()),
+            stream_id: row.get(4)?,
+            name: row.get(5)?,
+            stream_type: row.get(6)?,
+            stream_url: row.get(7)?,
+            created_at: row.get(8)?,
+        })
+    });
+
+    match result {
+        Ok(channel) => Ok(Some(channel)),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(e) => Err(e.into()),
+    }
+}
+
+#[tauri::command]
 pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<Channel>, Error> {
+    println!("Fetching channels for playlist: {}", id);
     {
         let mut conn = db.0.lock().unwrap();
         let mut stmt = conn.prepare(
@@ -336,21 +409,39 @@ pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<
     {
         let mut conn = db.0.lock().unwrap();
         let tx = conn.transaction()?;
-        tx.execute("DELETE FROM categories WHERE playlist_id = ?", [id])?;
+        println!("Starting category refresh for playlist {}", id);
 
+        // Delete all related records in the correct order
+        let selected_count =
+            tx.execute("DELETE FROM selected_channel WHERE playlist_id = ?", [id])?;
+        println!("Deleted {} selected channel records", selected_count);
+
+        let channels_count = tx.execute("DELETE FROM channels WHERE playlist_id = ?", [id])?;
+        println!("Deleted {} channel records", channels_count);
+
+        let categories_count = tx.execute("DELETE FROM categories WHERE playlist_id = ?", [id])?;
+        println!("Deleted {} category records", categories_count);
+
+        // Insert categories
+        println!("Starting to insert {} categories", categories.len());
         for (cat_id, cat_name) in &categories {
+            println!(
+                "Debug: Inserting category: id={}, cat_id={}, name={}",
+                id, cat_id, cat_name
+            );
             tx.execute(
                 "INSERT INTO categories (playlist_id, category_id, name, created_at) VALUES (?1, ?2, ?3, ?4)",
                 params![id, cat_id, cat_name, now],
             )?;
         }
+        println!("Finished inserting categories");
         tx.commit()?;
     }
 
     {
         let mut conn = db.0.lock().unwrap();
         let tx = conn.transaction()?;
-        tx.execute("DELETE FROM channels WHERE playlist_id = ?", [id])?;
+        println!("Starting to insert {} channels", channels.len());
 
         for channel in channels {
             let stream_id = get_string_value(&channel["stream_id"])
@@ -395,7 +486,7 @@ pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<
 
             tx.execute(
                 "INSERT INTO channels (playlist_id, category_id, stream_id, name, stream_type, stream_url, created_at)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
                 params![
                     id,
                     category_id.as_ref().map(|s| s.as_str()),
@@ -420,7 +511,9 @@ pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<
             });
         }
 
+        println!("Committing channel transaction...");
         tx.commit()?;
+        println!("Channel transaction committed successfully");
     }
 
     Ok(stored_channels)

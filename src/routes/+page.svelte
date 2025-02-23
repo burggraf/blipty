@@ -144,7 +144,7 @@
 				</Card.Title>
 			</Card.Header>
 			<Card.Content class="p-6">
-				<ChannelList channels={currentChannels} />
+				<ChannelList channels={currentChannels} playlist_id={currentProvider.id!} />
 			</Card.Content>
 		</Card.Root>
 	{:else if providers.length > 0}
