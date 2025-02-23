@@ -268,8 +268,10 @@ pub async fn get_selected_channel(
     println!("Getting selected channel for playlist: {:?}", args);
     let mut conn = db.0.lock().unwrap();
     let mut stmt = conn.prepare(
-        "SELECT c.* FROM channels c
+        "SELECT c.*, COALESCE(cat.name, 'Uncategorized') as category_name
+         FROM channels c
          INNER JOIN selected_channel sc ON c.id = sc.channel_id
+         LEFT JOIN categories cat ON c.category_id = cat.category_id AND c.playlist_id = cat.playlist_id
          WHERE sc.playlist_id = ?",
     )?;
 
@@ -278,14 +280,12 @@ pub async fn get_selected_channel(
             id: Some(row.get(0)?),
             playlist_id: row.get(1)?,
             category_id: row.get(2)?,
-            category_name: row
-                .get::<_, Option<String>>(3)?
-                .unwrap_or_else(|| "Uncategorized".to_string()),
-            stream_id: row.get(4)?,
-            name: row.get(5)?,
-            stream_type: row.get(6)?,
-            stream_url: row.get(7)?,
-            created_at: row.get(8)?,
+            stream_id: row.get(3)?,
+            name: row.get(4)?,
+            stream_type: row.get(5)?,
+            stream_url: row.get(6)?,
+            created_at: row.get(7)?,
+            category_name: row.get(8)?
         })
     });
 
