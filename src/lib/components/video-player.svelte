@@ -6,6 +6,22 @@
 	let videoId = `video-${Math.random().toString(36).substr(2, 9)}`;
 	let player: mpegts.Player | null = null;
 	let currentSrc: string | null = null;
+	let retryCount = 0;
+	let maxRetries = 3;
+	let stallTimeout: NodeJS.Timeout | null = null;
+
+	function destroyPlayer() {
+		if (player) {
+			try {
+				player.unload();
+				player.detachMediaElement();
+				player.destroy();
+				player = null;
+			} catch (error) {
+				console.error('Error destroying player:', error);
+			}
+		}
+	}
 
 	function initializePlayer() {
 		try {
@@ -15,92 +31,85 @@
 				return;
 			}
 
-			console.log('Initializing mpegts.js player with source:', src);
-
-			if (mpegts.getFeatureList().mseLivePlayback) {
-				player = mpegts.createPlayer({
-					type: 'mse',  // 'mse' works better for live streams
-					isLive: true,
-					url: src,
-					fetchOptions: {
-						cors: true,
-						credentials: 'include'
-					},
-					configs: {
-						enableStashBuffer: false,  // Reduce latency
-						liveBufferLatencyChasing: true,
-						liveSync: true,
-						lazyLoad: false
-					}
-				});
-
-				// Error handling
-				player.on(mpegts.Events.ERROR, (errorType, errorDetail, errorInfo) => {
-					console.error('mpegts.js error:', {
-						type: errorType,
-						detail: errorDetail,
-						info: errorInfo
-					});
-				});
-
-				// Log events
-				player.on(mpegts.Events.MEDIA_INFO, (mediaInfo) => {
-					console.log('Media info:', mediaInfo);
-				});
-
-				player.on(mpegts.Events.STATISTICS_INFO, (stats) => {
-					console.log('Statistics:', stats);
-				});
-
-				// Attach player to video element
-				player.attachMediaElement(element);
-				player.load();
-				player.play();
-			} else {
+			if (!mpegts.getFeatureList().mseLivePlayback) {
 				console.error('MSE live playback not supported in this browser');
+				return;
 			}
+
+			player = mpegts.createPlayer({
+				type: 'mse',
+				isLive: true,
+				url: src,
+				fetchOptions: {
+					cors: true,
+					credentials: 'include'
+				},
+				configs: {
+					enableStashBuffer: false,
+					liveBufferLatencyChasing: true,
+					liveSync: true,
+					lazyLoad: false,
+					stashInitialSize: 1024 * 1024 * 1, // 1MB initial buffer
+				}
+			});
+
+			// Handle errors
+			player.on(mpegts.Events.ERROR, (errorType, errorDetail) => {
+				console.error('Player error:', errorType, errorDetail);
+				if (retryCount < maxRetries) {
+					retryCount++;
+					console.log(`Retrying playback (${retryCount}/${maxRetries})...`);
+					destroyPlayer();
+					setTimeout(initializePlayer, 1000);
+				}
+			});
+
+			// Handle stall detection
+			player.on(mpegts.Events.STATISTICS_INFO, (stats) => {
+				if (stats.speed === 0) {
+					if (!stallTimeout) {
+						stallTimeout = setTimeout(() => {
+							console.log('Playback stalled, attempting recovery...');
+							destroyPlayer();
+							initializePlayer();
+						}, 5000);
+					}
+				} else if (stallTimeout) {
+					clearTimeout(stallTimeout);
+					stallTimeout = null;
+				}
+			});
+
+			// Attach and start playback
+			player.attachMediaElement(element);
+			player.load();
+			player.play();
 		} catch (error) {
 			console.error('Error initializing player:', error);
 		}
 	}
 
 	onMount(() => {
-		console.log('Component mounted');
-		console.log('Video element ID:', videoId);
-		console.log('Source URL:', src);
-		console.log('mpegts.js features:', mpegts.getFeatureList());
-		
-		// Wait for next tick to ensure element is in DOM
 		setTimeout(initializePlayer, 0);
 	});
 
 	onDestroy(() => {
-		if (player) {
-			player.destroy();
+		if (stallTimeout) {
+			clearTimeout(stallTimeout);
 		}
+		destroyPlayer();
 	});
 
 	// Update source when it changes
 	$: if (src !== currentSrc) {
-		console.log('Source changed, updating player source:', src);
 		currentSrc = src;
-		
-		// Clean up old player if it exists
-		if (player) {
-			try {
-				player.unload();
-				player.detachMediaElement();
-				player.destroy();
-				player = null;
-			} catch (error) {
-				console.error('Error cleaning up old player:', error);
-			}
+		retryCount = 0;
+		if (stallTimeout) {
+			clearTimeout(stallTimeout);
+			stallTimeout = null;
 		}
-
-		// Initialize new player after a short delay to ensure cleanup is complete
-		setTimeout(() => {
-			initializePlayer();
-		}, 100);
+		destroyPlayer();
+		setTimeout(initializePlayer, 100);
 	}
 </script>
 
