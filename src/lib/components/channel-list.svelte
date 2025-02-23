@@ -1,21 +1,67 @@
 <script lang="ts">
 	import * as Accordion from '$lib/components/ui/accordion';
-	import type { Channel } from '$lib/commands';
-	import { setSelectedChannel, getSelectedChannel } from '$lib/commands';
+	import type { Channel, Playlist } from '$lib/commands';
+	import { setSelectedChannel, getSelectedChannel, getPlaylists } from '$lib/commands';
 	import VideoPlayer from './video-player.svelte';
 	import { onMount } from 'svelte';
 
 	export let channels: Channel[];
 	export let playlist_id: number;
 
+	let currentPlaylist: Playlist | null = null;
+
 	// Currently selected channel
 	let selectedChannel: Channel | null = null;
 
-	onMount(() => {
+	onMount(async () => {
 		if (playlist_id) {
-			loadSelectedChannel();
+			await loadPlaylistInfo();
+			await loadSelectedChannel();
 		}
 	});
+
+	async function loadPlaylistInfo() {
+		try {
+			const playlists = await getPlaylists();
+			console.log('All playlists:', playlists);
+			console.log('Looking for playlist ID:', playlist_id);
+			currentPlaylist = playlists.find(p => p.id === playlist_id) || null;
+			console.log('Found playlist:', currentPlaylist);
+		} catch (error) {
+			console.error('Error loading playlist info:', error);
+		}
+	}
+
+	function getAuthenticatedStreamUrl(streamUrl: string): string {
+		console.log('Current playlist:', currentPlaylist);
+		console.log('Original stream URL:', streamUrl);
+		
+		if (!currentPlaylist) {
+			console.log('No playlist available, returning original URL');
+			return streamUrl;
+		}
+		
+		try {
+			const url = new URL(streamUrl);
+			
+			// Check if URL already has username/password parameters
+			if (url.searchParams.has('username') || url.searchParams.has('password')) {
+				console.log('URL already has credentials, using as is');
+				return streamUrl;
+			}
+
+			// Add credentials as query parameters
+			url.searchParams.set('username', currentPlaylist.username);
+			url.searchParams.set('password', currentPlaylist.password);
+			
+			const authenticatedUrl = url.toString();
+			console.log('Authenticated URL:', authenticatedUrl);
+			return authenticatedUrl;
+		} catch (error) {
+			console.error('Error adding authentication to URL:', error);
+			return streamUrl;
+		}
+	}
 
 	// Load selected channel
 	async function loadSelectedChannel() {
@@ -71,7 +117,7 @@
 <div class="w-full max-w-3xl mx-auto space-y-4">
 	{#if selectedChannel}
 		<div class="w-full">
-			<VideoPlayer src={selectedChannel.stream_url} />
+			<VideoPlayer src={getAuthenticatedStreamUrl(selectedChannel.stream_url)} />
 			<div class="mt-2 text-lg font-semibold">{selectedChannel.name}</div>
 		</div>
 	{/if}
