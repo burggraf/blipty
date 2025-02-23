@@ -303,9 +303,9 @@ pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<
         let mut conn = db.0.lock().unwrap();
         let mut stmt = conn.prepare(
             "SELECT c.id, c.playlist_id, c.category_id, c.stream_id, c.name, c.stream_type, c.stream_url, 
-                    c.created_at, COALESCE(cat.name, 'Uncategorized') as category_name
+                    c.created_at, cat.name as category_name
              FROM channels c
-             LEFT JOIN categories cat ON c.playlist_id = cat.playlist_id AND c.category_id = cat.category_id
+             INNER JOIN categories cat ON c.playlist_id = cat.playlist_id AND c.category_id = cat.category_id
              WHERE c.playlist_id = ?",
         )?;
 
@@ -364,14 +364,21 @@ pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<
     let body = response.text().await?;
     let json_value: serde_json::Value = serde_json::from_str(&body)?;
 
+    println!("API Response: {}", body);
+
     let channels = if json_value.is_array() {
+        println!("Response is a direct array");
         json_value.as_array().unwrap().to_vec()
     } else if let Some(obj) = json_value.as_object() {
+        println!("Response is an object with keys: {}", obj.keys().map(|k| k.as_str()).collect::<Vec<_>>().join(", "));
         if let Some(arr) = obj.get("channels").and_then(|v| v.as_array()) {
+            println!("Found channels array");
             arr.to_vec()
         } else if let Some(arr) = obj.get("data").and_then(|v| v.as_array()) {
+            println!("Found data array");
             arr.to_vec()
         } else if let Some(arr) = obj.get("live_streams").and_then(|v| v.as_array()) {
+            println!("Found live_streams array");
             arr.to_vec()
         } else {
             return Err(Error::Internal("Could not find channel array".to_string()));
@@ -379,6 +386,11 @@ pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<
     } else {
         return Err(Error::Internal("Invalid response format".to_string()));
     };
+
+    // Log the first channel as an example
+    if let Some(first_channel) = channels.first() {
+        println!("Example channel data: {}", serde_json::to_string_pretty(first_channel).unwrap());
+    }
 
     let get_string_value = |value: &serde_json::Value| {
         value
@@ -394,16 +406,23 @@ pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<
     let now = Utc::now().to_rfc3339();
 
     for channel in &channels {
-        if let (Some(cat_id), Some(cat_name)) = (
-            get_string_value(&channel["category_id"])
-                .or_else(|| get_string_value(&channel["group"])),
-            channel["category_name"]
-                .as_str()
-                .or_else(|| channel["group_title"].as_str())
-                .map(String::from),
-        ) {
-            categories.insert(cat_id, cat_name);
-        }
+        // Get category ID first
+        let cat_id = get_string_value(&channel["category_id"])
+            .or_else(|| get_string_value(&channel["group"]))
+            .unwrap_or_else(|| "default".to_string());
+
+        // Try to get category name from various possible fields
+        let cat_name = channel["category_name"]
+            .as_str()
+            .or_else(|| channel["name"].as_str())
+            .or_else(|| channel["group_title"].as_str())
+            .or_else(|| channel["category"].as_str())
+            .map(String::from)
+            .unwrap_or_else(|| "Uncategorized".to_string());
+
+        // Always insert a category, but only if we haven't seen this ID before
+        // This ensures we keep the first category name we find for each ID
+        categories.entry(cat_id).or_insert(cat_name);
     }
 
     {
