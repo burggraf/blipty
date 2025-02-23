@@ -33,6 +33,8 @@ export async function deletePlaylist(id: number): Promise<void> {
 export interface Channel {
     id?: number;
     playlist_id: number;
+    category_id?: string;
+    category_name: string;
     stream_id: string;
     name: string;
     stream_type: string;
@@ -42,8 +44,4 @@ export interface Channel {
 
 export async function fetchChannels(id: number): Promise<Channel[]> {
     return await invoke('fetch_channels', { id });
-}
-
-export async function getChannels(playlist_id: number): Promise<Channel[]> {
-    return await invoke('get_channels', { playlist_id });
 }

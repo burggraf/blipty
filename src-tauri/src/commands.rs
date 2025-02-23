@@ -23,7 +23,6 @@ pub enum Error {
     Internal(String),
 }
 
-// Custom implementation for serialization
 impl Serialize for Error {
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
     where
@@ -33,17 +32,14 @@ impl Serialize for Error {
     }
 }
 
-// Convert IO errors to our Error type
 impl From<std::io::Error> for Error {
     fn from(err: std::io::Error) -> Self {
         Error::Io(err.to_string())
     }
 }
 
-// Database connection wrapper
 pub struct DbConnection(pub Mutex<Connection>);
 
-// Category struct for serialization/deserialization
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Category {
     pub id: Option<i64>,
@@ -53,12 +49,12 @@ pub struct Category {
     pub created_at: Option<String>,
 }
 
-// Channel struct for serialization/deserialization
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Channel {
     pub id: Option<i64>,
     pub playlist_id: i64,
     pub category_id: Option<String>,
+    pub category_name: String,
     pub stream_id: String,
     pub name: String,
     pub stream_type: String,
@@ -66,7 +62,6 @@ pub struct Channel {
     pub created_at: Option<String>,
 }
 
-// Playlist struct for serialization/deserialization
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Playlist {
     pub id: Option<i64>,
@@ -78,7 +73,6 @@ pub struct Playlist {
     pub is_active: bool,
 }
 
-// Initialize database
 pub fn init_db(conn: &Connection) -> SqliteResult<()> {
     conn.execute(
         "CREATE TABLE IF NOT EXISTS playlists (
@@ -127,7 +121,6 @@ pub fn init_db(conn: &Connection) -> SqliteResult<()> {
     Ok(())
 }
 
-// Command to initialize database
 #[tauri::command]
 pub async fn initialize_database<R: Runtime>(app_handle: AppHandle<R>) -> Result<(), Error> {
     let app_dir = app_handle
@@ -138,16 +131,15 @@ pub async fn initialize_database<R: Runtime>(app_handle: AppHandle<R>) -> Result
     std::fs::create_dir_all(&app_dir)?;
     let db_path = app_dir.join("iptv.db");
 
-    let conn = Connection::open(db_path)?;
-    init_db(&conn)?;
+    let mut conn = Connection::open(db_path)?;
+    init_db(&mut conn)?;
 
     Ok(())
 }
 
-// Command to add a new playlist
 #[tauri::command]
 pub async fn add_playlist(db: State<'_, DbConnection>, playlist: Playlist) -> Result<i64, Error> {
-    let conn = db.0.lock().unwrap();
+    let mut conn = db.0.lock().unwrap();
     let now = Utc::now().to_rfc3339();
 
     let mut stmt = conn.prepare(
@@ -167,10 +159,9 @@ pub async fn add_playlist(db: State<'_, DbConnection>, playlist: Playlist) -> Re
     Ok(conn.last_insert_rowid())
 }
 
-// Command to get all playlists
 #[tauri::command]
 pub async fn get_playlists(db: State<'_, DbConnection>) -> Result<Vec<Playlist>, Error> {
-    let conn = db.0.lock().unwrap();
+    let mut conn = db.0.lock().unwrap();
     let mut stmt = conn.prepare(
         "SELECT id, name, server_url, username, password, last_updated, is_active 
          FROM playlists",
@@ -193,14 +184,13 @@ pub async fn get_playlists(db: State<'_, DbConnection>) -> Result<Vec<Playlist>,
     Ok(playlists)
 }
 
-// Command to update a playlist
 #[tauri::command]
 pub async fn update_playlist(
     db: State<'_, DbConnection>,
     id: i64,
     playlist: Playlist,
 ) -> Result<(), Error> {
-    let conn = db.0.lock().unwrap();
+    let mut conn = db.0.lock().unwrap();
     let now = Utc::now().to_rfc3339();
 
     let mut stmt = conn.prepare(
@@ -227,107 +217,83 @@ pub async fn update_playlist(
     Ok(())
 }
 
-// Command to delete a playlist
 #[tauri::command]
 pub async fn delete_playlist(db: State<'_, DbConnection>, id: i64) -> Result<(), Error> {
-    let conn = db.0.lock().unwrap();
+    let mut conn = db.0.lock().unwrap();
     conn.execute("DELETE FROM playlists WHERE id = ?", [id])?;
     Ok(())
 }
 
-// Command to fetch channels for a playlist
 #[tauri::command]
 pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<Channel>, Error> {
-    // Check if channels exist for this playlist and return them if found
     {
-        let conn = db.0.lock().unwrap();
+        let mut conn = db.0.lock().unwrap();
         let mut stmt = conn.prepare(
-            "SELECT id, playlist_id, category_id, stream_id, name, stream_type, stream_url, created_at
-             FROM channels
-             WHERE playlist_id = ?"
+            "SELECT c.id, c.playlist_id, c.category_id, c.stream_id, c.name, c.stream_type, c.stream_url, 
+                    c.created_at, COALESCE(cat.name, 'Uncategorized') as category_name
+             FROM channels c
+             LEFT JOIN categories cat ON c.playlist_id = cat.playlist_id AND c.category_id = cat.category_id
+             WHERE c.playlist_id = ?",
         )?;
 
-        let existing = stmt.query_map([id], |row| {
-            Ok(Channel {
-                id: Some(row.get(0)?),
-                playlist_id: row.get(1)?,
-                category_id: row.get(2)?,
-                stream_id: row.get(3)?,
-                name: row.get(4)?,
-                stream_type: row.get(5)?,
-                stream_url: row.get(6)?,
-                created_at: row.get(7)?,
-            })
-        })?;
+        let channels: Vec<Channel> = stmt
+            .query_map([id], |row| {
+                Ok(Channel {
+                    id: Some(row.get(0)?),
+                    playlist_id: row.get(1)?,
+                    category_id: row.get(2)?,
+                    category_name: row
+                        .get::<_, Option<String>>(8)?
+                        .unwrap_or_else(|| "Uncategorized".to_string()),
+                    stream_id: row.get(3)?,
+                    name: row.get(4)?,
+                    stream_type: row.get(5)?,
+                    stream_url: row.get(6)?,
+                    created_at: row.get(7)?,
+                })
+            })?
+            .collect::<SqliteResult<Vec<_>>>()?;
 
-        let channels: Vec<Channel> = existing.collect::<SqliteResult<Vec<_>>>()?;
         if !channels.is_empty() {
             return Ok(channels);
         }
     }
 
-    // No existing channels found, proceed with fetching new ones
     let (server_url, username, password) = {
-        let conn = db.0.lock().unwrap();
+        let mut conn = db.0.lock().unwrap();
         let mut stmt = conn.prepare(
             "SELECT server_url, username, password
              FROM playlists
              WHERE id = ?",
         )?;
 
-        let result = stmt.query_row([id], |row| {
+        stmt.query_row([id], |row| {
             Ok((
                 row.get::<_, String>(0)?,
                 row.get::<_, String>(1)?,
                 row.get::<_, String>(2)?,
             ))
-        })?;
-        result
+        })?
     };
 
-    println!("Retrieved provider details. Building URL...");
-
-    // Parse the server URL to handle potential port numbers
     let mut url = Url::parse(&server_url)?;
-
-    // Ensure the path ends with player_api.php
     if !url.path().ends_with("player_api.php") {
         url.set_path("player_api.php");
     }
 
-    // Add query parameters
     url.query_pairs_mut()
         .append_pair("username", &username)
         .append_pair("password", &password)
         .append_pair("action", "get_live_streams");
 
-    println!("Fetching channels from URL: {}", url);
-
-    // Make the HTTP request
     let client = reqwest::Client::new();
     let response = client.get(url).send().await?;
     let body = response.text().await?;
+    let json_value: serde_json::Value = serde_json::from_str(&body)?;
 
-    println!("Raw response: {}", body);
-
-    // Try to parse as a JSON Value first to inspect structure
-    let json_value: serde_json::Value = serde_json::from_str(&body)
-        .map_err(|e| Error::Internal(format!("Failed to parse JSON: {}", e)))?;
-
-    println!(
-        "JSON structure: {}",
-        serde_json::to_string_pretty(&json_value)
-            .unwrap_or_else(|_| "Failed to format JSON".to_string())
-    );
-
-    // Handle different response formats
     let channels = if json_value.is_array() {
         json_value.as_array().unwrap().to_vec()
     } else if let Some(obj) = json_value.as_object() {
-        // Log available keys at root level
-        println!("Available root keys: {:?}", obj.keys().collect::<Vec<_>>());
-
-        // Try common wrapping properties
         if let Some(arr) = obj.get("channels").and_then(|v| v.as_array()) {
             arr.to_vec()
         } else if let Some(arr) = obj.get("data").and_then(|v| v.as_array()) {
@@ -335,123 +301,90 @@ pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<
         } else if let Some(arr) = obj.get("live_streams").and_then(|v| v.as_array()) {
             arr.to_vec()
         } else {
-            // If we can't find a known array property, look at each root property
-            for (key, value) in obj {
-                println!("Key '{}' contains: {}", key, value);
-            }
-            return Err(Error::Internal(format!(
-                "Could not find channel array in response. Available keys: {:?}",
-                obj.keys().collect::<Vec<_>>()
-            )));
+            return Err(Error::Internal("Could not find channel array".to_string()));
         }
     } else {
-        return Err(Error::Internal(
-            "Response is neither array nor object".to_string(),
-        ));
+        return Err(Error::Internal("Invalid response format".to_string()));
     };
 
-    println!("Found {} items in response", channels.len());
-
-    let mut stored_channels = Vec::new();
-    let mut stored_categories = std::collections::HashMap::new();
-    let now = Utc::now().to_rfc3339();
-
-    // Helper function to get value as string from various types
     let get_string_value = |value: &serde_json::Value| {
         value
             .as_str()
-            .map(|s| s.to_string())
+            .map(String::from)
             .or_else(|| value.as_i64().map(|n| n.to_string()))
             .or_else(|| value.as_u64().map(|n| n.to_string()))
             .or_else(|| value.as_f64().map(|n| n.to_string()))
     };
 
-    // First: Fetch categories
-    let categories_url = {
-        let mut url = Url::parse(&server_url)?;
-        if !url.path().ends_with("player_api.php") {
-            url.set_path("player_api.php");
-        }
-        url.query_pairs_mut()
-            .clear()
-            .append_pair("username", &username)
-            .append_pair("password", &password)
-            .append_pair("action", "get_live_categories");
-        url
-    };
+    let mut stored_channels = Vec::new();
+    let mut categories = std::collections::HashMap::new();
+    let now = Utc::now().to_rfc3339();
 
-    println!("Fetching categories from URL: {}", categories_url);
-
-    let categories_response = client.get(categories_url).send().await?;
-    let categories_body = categories_response.text().await?;
-    println!("Categories response: {}", categories_body);
-
-    let categories_json: Vec<serde_json::Value> = serde_json::from_str(&categories_body)
-        .map_err(|e| Error::Internal(format!("Failed to parse categories JSON: {}", e)))?;
-
-    // Extract categories with proper names
-    let mut categories = std::collections::HashSet::new();
-    for category in &categories_json {
+    for channel in &channels {
         if let (Some(cat_id), Some(cat_name)) = (
-            get_string_value(&category["category_id"])
-                .or_else(|| get_string_value(&category["id"])),
-            category["category_name"]
+            get_string_value(&channel["category_id"])
+                .or_else(|| get_string_value(&channel["group"])),
+            channel["category_name"]
                 .as_str()
-                .or_else(|| category["name"].as_str())
-                .map(|s| s.to_string()),
+                .or_else(|| channel["group_title"].as_str())
+                .map(String::from),
         ) {
-            categories.insert((cat_id, cat_name));
+            categories.insert(cat_id, cat_name);
         }
     }
 
-    // If no categories were found in the category response, fall back to channel data
-    if categories.is_empty() {
-        for channel in &channels {
-            if let (Some(cat_id), Some(cat_name)) = (
-                channel["category_id"]
-                    .as_str()
-                    .or_else(|| channel["group"].as_str()),
-                channel["category_name"]
-                    .as_str()
-                    .or_else(|| channel["group_title"].as_str())
-                    .or_else(|| channel["category_id"].as_str()),
-            ) {
-                categories.insert((cat_id.to_string(), cat_name.to_string()));
-            }
+    {
+        let mut conn = db.0.lock().unwrap();
+        let tx = conn.transaction()?;
+        tx.execute("DELETE FROM categories WHERE playlist_id = ?", [id])?;
+
+        for (cat_id, cat_name) in &categories {
+            tx.execute(
+                "INSERT INTO categories (playlist_id, category_id, name, created_at) VALUES (?1, ?2, ?3, ?4)",
+                params![id, cat_id, cat_name, now],
+            )?;
         }
+        tx.commit()?;
     }
 
-    // Process channel data
-    let channel_data: Vec<(String, Option<String>, String, String, String)> = channels
-        .iter()
-        .map(|channel| {
-            println!("Processing channel: {}", channel);
+    {
+        let mut conn = db.0.lock().unwrap();
+        let tx = conn.transaction()?;
+        tx.execute("DELETE FROM channels WHERE playlist_id = ?", [id])?;
 
-            // Try multiple possible field names for stream_id
+        for channel in channels {
             let stream_id = get_string_value(&channel["stream_id"])
                 .or_else(|| get_string_value(&channel["id"]))
                 .or_else(|| get_string_value(&channel["num"]))
-                .ok_or_else(|| Error::Internal("Missing stream_id/id/num".to_string()))?;
+                .ok_or_else(|| Error::Internal("Missing stream_id".to_string()))?;
 
-            // Get category ID
-            let category_id = get_string_value(&channel["category_id"])
-                .or_else(|| get_string_value(&channel["group"]));
+            let (category_id, category_name) = if let Some(cat_id) =
+                get_string_value(&channel["category_id"])
+                    .or_else(|| get_string_value(&channel["group"]))
+            {
+                (
+                    Some(cat_id.clone()),
+                    categories
+                        .get(&cat_id)
+                        .cloned()
+                        .unwrap_or_else(|| "Uncategorized".to_string()),
+                )
+            } else {
+                (None, "Uncategorized".to_string())
+            };
 
-            // Get channel name
             let name = channel["name"]
                 .as_str()
                 .or_else(|| channel["title"].as_str())
-                .ok_or_else(|| Error::Internal("Missing name/title".to_string()))?
+                .ok_or_else(|| Error::Internal("Missing name".to_string()))?
                 .to_string();
 
-            // Get stream type
             let stream_type = channel["stream_type"]
                 .as_str()
                 .or_else(|| channel["type"].as_str())
                 .unwrap_or("live")
                 .to_string();
 
-            // For this provider, construct the stream URL using the stream_id
             let stream_url = format!(
                 "{}/live/{}/{}/{}",
                 server_url.trim_end_matches("/player_api.php"),
@@ -460,28 +393,6 @@ pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<
                 stream_id
             );
 
-            Ok((stream_id, category_id, name, stream_type, stream_url))
-        })
-        .collect::<Result<Vec<_>, Error>>()?;
-
-    // Store both categories and channels in a single transaction
-    {
-        let mut conn = db.0.lock().unwrap();
-        let tx = conn.transaction()?;
-
-        // Clear and insert categories
-        tx.execute("DELETE FROM categories WHERE playlist_id = ?", [id])?;
-        for (cat_id, cat_name) in &categories {
-            tx.execute(
-                "INSERT INTO categories (playlist_id, category_id, name, created_at) VALUES (?1, ?2, ?3, ?4)",
-                params![id, cat_id, cat_name, now],
-            )?;
-            stored_categories.insert(cat_id.clone(), cat_name.clone());
-        }
-
-        // Clear and insert channels
-        tx.execute("DELETE FROM channels WHERE playlist_id = ?", [id])?;
-        for (stream_id, category_id, name, stream_type, stream_url) in &channel_data {
             tx.execute(
                 "INSERT INTO channels (playlist_id, category_id, stream_id, name, stream_type, stream_url, created_at)
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
@@ -496,23 +407,21 @@ pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<
                 ],
             )?;
 
-            let last_id = tx.last_insert_rowid();
             stored_channels.push(Channel {
-                id: Some(last_id),
+                id: Some(tx.last_insert_rowid()),
                 playlist_id: id,
-                category_id: category_id.clone(),
-                stream_id: stream_id.clone(),
-                name: name.clone(),
-                stream_type: stream_type.clone(),
-                stream_url: stream_url.clone(),
+                category_id,
+                category_name,
+                stream_id,
+                name,
+                stream_type,
+                stream_url,
                 created_at: Some(now.clone()),
             });
         }
 
         tx.commit()?;
     }
-
-    println!("Stored {} channels in database", stored_channels.len());
 
     Ok(stored_channels)
 }

@@ -3,19 +3,21 @@
 	import * as Card from '$lib/components/ui/card';
 	import PlaylistForm from '$lib/components/playlist-form.svelte';
 	import PlaylistEditForm from '$lib/components/playlist-edit-form.svelte';
+	import ChannelList from '$lib/components/channel-list.svelte';
 	import { onMount } from 'svelte';
 	import { initializeDatabase, getPlaylists, deletePlaylist, fetchChannels } from '$lib/commands';
-	import type { Playlist } from '$lib/commands';
+	import type { Channel, Playlist } from '$lib/commands';
 	import { buttonVariants } from '$lib/components/ui/button/button.svelte';
 	import { cn } from '$lib/utils';
-	import { Pencil, Trash2 } from 'lucide-svelte';
+	import { Pencil, Trash2, ArrowLeft } from 'lucide-svelte';
+	import { writable } from 'svelte/store';
 
 	let providers: Playlist[] = [];
 	let error = '';
 	let loading = false;
 	let editingProvider: Playlist | null = null;
-	// Make loadingProviders reactive by using a writable store
-	import { writable } from 'svelte/store';
+	let currentProvider: Playlist | null = null;
+	let currentChannels: Channel[] = [];
 	const loadingProviders = writable(new Set<number>());
 	$: loadingSet = $loadingProviders;
 
@@ -46,6 +48,8 @@
 
 			const results = await fetchChannels(provider.id!);
 			console.log('Channel results:', results);
+			currentProvider = provider;
+			currentChannels = results;
 		} catch (e: any) {
 			console.error('Failed to fetch channels:', e);
 			error = e.message || 'Failed to fetch channels';
@@ -69,6 +73,10 @@
 				.then(() => {
 					console.log('Delete successful');
 					providers = providers.filter((p) => p.id !== provider.id);
+					if (currentProvider?.id === provider.id) {
+						currentProvider = null;
+						currentChannels = [];
+					}
 					console.log('Updated providers list:', providers);
 				})
 				.catch((e) => {
@@ -91,6 +99,11 @@
 
 	function handleEditCancel() {
 		editingProvider = null;
+	}
+
+	function handleBackToProviders() {
+		currentProvider = null;
+		currentChannels = [];
 	}
 </script>
 
@@ -115,6 +128,25 @@
 			on:saved={handleEditSave}
 			on:cancel={handleEditCancel}
 		/>
+	{:else if currentProvider && currentChannels.length > 0}
+		<Card.Root class="w-[800px] backdrop-blur-sm bg-white/90 dark:bg-gray-800/90">
+			<Card.Header class="flex items-center space-x-4">
+				<button
+					class={cn(buttonVariants({ variant: 'outline', size: 'icon' }))}
+					on:click={handleBackToProviders}
+				>
+					<ArrowLeft class="h-4 w-4" />
+				</button>
+				<Card.Title
+					class="text-3xl font-bold bg-gradient-to-r from-indigo-500 to-pink-500 bg-clip-text text-transparent"
+				>
+					{currentProvider.name} Channels
+				</Card.Title>
+			</Card.Header>
+			<Card.Content class="p-6">
+				<ChannelList channels={currentChannels} />
+			</Card.Content>
+		</Card.Root>
 	{:else if providers.length > 0}
 		<Card.Root class="w-[380px] backdrop-blur-sm bg-white/90 dark:bg-gray-800/90">
 			<Card.Header class="space-y-2">
