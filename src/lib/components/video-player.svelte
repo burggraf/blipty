@@ -5,6 +5,7 @@
 	export let src: string;
 	let videoId = `video-${Math.random().toString(36).substr(2, 9)}`;
 	let player: mpegts.Player | null = null;
+	let currentSrc: string | null = null;
 
 	function initializePlayer() {
 		try {
@@ -80,12 +81,26 @@
 	});
 
 	// Update source when it changes
-	$: if (player && src) {
+	$: if (src !== currentSrc) {
 		console.log('Source changed, updating player source:', src);
-		player.unload();
-		player.detachMediaElement();
-		player.destroy();
-		initializePlayer();
+		currentSrc = src;
+		
+		// Clean up old player if it exists
+		if (player) {
+			try {
+				player.unload();
+				player.detachMediaElement();
+				player.destroy();
+				player = null;
+			} catch (error) {
+				console.error('Error cleaning up old player:', error);
+			}
+		}
+
+		// Initialize new player after a short delay to ensure cleanup is complete
+		setTimeout(() => {
+			initializePlayer();
+		}, 100);
 	}
 </script>
 
