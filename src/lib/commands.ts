@@ -48,13 +48,17 @@ export async function fetchChannels(id: number): Promise<Channel[]> {
 
 export async function setSelectedChannel(playlist_id: number, channel_id: number): Promise<void> {
     return await invoke('set_selected_channel', {
-        playlistId: playlist_id,
-        channelId: channel_id
+        args: {
+            playlistId: playlist_id,
+            channelId: channel_id
+        }
     });
 }
 
 export async function getSelectedChannel(playlist_id: number): Promise<Channel | null> {
     return await invoke('get_selected_channel', {
-        playlistId: playlist_id
+        args: {
+            playlistId: playlist_id
+        }
     });
 }
