@@ -120,8 +120,10 @@
 		autoplay
 		class="w-full h-full"
 	>
+		<track kind="captions" src="" label="Captions" />
 		<p>
 			Your browser does not support HTML5 video playback.
+			Live captions are not available for this stream.
 		</p>
 	</video>
 </div>

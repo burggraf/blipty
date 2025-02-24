@@ -5,12 +5,17 @@
 	import PlaylistEditForm from '$lib/components/playlist-edit-form.svelte';
 	import ChannelList from '$lib/components/channel-list.svelte';
 	import { onMount } from 'svelte';
-	import { initializeDatabase, getPlaylists, deletePlaylist, fetchChannels } from '$lib/commands';
+	import { initializeDatabase, getSelectedChannel, getPlaylists, deletePlaylist, fetchChannels } from '$lib/commands';
+import { selectedPlaylist, selectedChannel } from '$lib/stores';
 	import type { Channel, Playlist } from '$lib/commands';
 	import { buttonVariants } from '$lib/components/ui/button/button.svelte';
 	import { cn } from '$lib/utils';
 	import { Pencil, Trash2, ArrowLeft } from 'lucide-svelte';
 	import { writable } from 'svelte/store';
+	import VideoPlayer from '$lib/components/video-player.svelte';
+
+	
+
 
 	let providers: Playlist[] = [];
 	let error = '';
@@ -20,6 +25,8 @@
 	let currentChannels: Channel[] = [];
 	const loadingProviders = writable(new Set<number>());
 	$: loadingSet = $loadingProviders;
+	export let playlist_id: number;
+	let currentPlaylist: Playlist | null = null;
 
 	onMount(async () => {
 		try {
@@ -27,6 +34,11 @@
 			await initializeDatabase();
 			providers = await getPlaylists();
 			console.log('Loaded providers:', providers);
+			if (playlist_id) {
+				await loadPlaylistInfo();
+				await loadSelectedChannel();
+			}
+
 		} catch (e: any) {
 			error = e.message || 'Failed to initialize database';
 			console.error('Database initialization error:', e);
@@ -34,7 +46,33 @@
 			loading = false;
 		}
 	});
+	async function loadPlaylistInfo() {
+		try {
+			const playlists = await getPlaylists();
+			console.log('All playlists:', playlists);
+			console.log('Looking for playlist ID:', playlist_id);
+			currentPlaylist = playlists.find(p => p.id === playlist_id) || null;
+			console.log('Found playlist:', currentPlaylist);
+		} catch (error) {
+			console.error('Error loading playlist info:', error);
+		}
+	}
 
+	// Load selected channel
+	async function loadSelectedChannel() {
+		try {
+			if (!playlist_id) {
+				console.log('No playlist_id available, cannot load selected channel');
+				return;
+			}
+			console.log('Loading selected channel for playlist:', playlist_id);
+			const channel = await getSelectedChannel(playlist_id);
+			selectedChannel.set(channel);
+			console.log('Selected channel:', channel);
+		} catch (error) {
+			console.error('Error loading selected channel:', error);
+		}
+	}
 	async function handleProviderClick(provider: Playlist) {
 		if ($loadingProviders.has(provider.id!)) return;
 
@@ -105,8 +143,49 @@
 		currentProvider = null;
 		currentChannels = [];
 	}
+	function getAuthenticatedStreamUrl(streamUrl: string): string {
+		console.log('Getting authenticated stream URL');
+		console.log('Current playlist:', currentPlaylist);
+		console.log('Original stream URL:', streamUrl);
+		
+		if (!currentPlaylist) {
+			console.log('No playlist available, returning original URL');
+			return streamUrl;
+		}
+		
+		try {
+			const url = new URL(streamUrl);
+			
+			// Check if URL already has username/password parameters
+			if (url.searchParams.has('username') || url.searchParams.has('password')) {
+				console.log('URL already has credentials, using as is');
+				return streamUrl;
+			}
+
+			// Add credentials as query parameters
+			url.searchParams.set('username', currentPlaylist.username);
+			url.searchParams.set('password', currentPlaylist.password);
+			
+			const authenticatedUrl = url.toString();
+			console.log('Authenticated URL:', authenticatedUrl);
+			return authenticatedUrl;
+		} catch (error) {
+			console.error('Error adding authentication to URL:', error);
+			return streamUrl;
+		}
+	}
+
 </script>
 
+selectedChannel: {JSON.stringify($selectedChannel)}<br/>
+{#if $selectedChannel}
+<div class="w-full">
+	<VideoPlayer src={$selectedChannel.authenticated_stream_url} />
+	<div class="mt-2 text-lg font-semibold">{$selectedChannel.name}</div>
+</div>
+{/if}
+
+<!--
 <div
 	class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 transition-all duration-500"
 >
@@ -208,3 +287,4 @@
 		<PlaylistForm />
 	{/if}
 </div>
+-->

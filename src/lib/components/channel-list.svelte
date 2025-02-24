@@ -2,6 +2,7 @@
 	import * as Accordion from '$lib/components/ui/accordion';
 	import type { Channel, Playlist } from '$lib/commands';
 	import { setSelectedChannel, getSelectedChannel, getPlaylists } from '$lib/commands';
+import { selectedPlaylist, selectedChannel as selectedChannelStore } from '$lib/stores';
 	import VideoPlayer from './video-player.svelte';
 	import { onMount } from 'svelte';
 
@@ -102,11 +103,19 @@
 		});
 
 	async function handleChannelClick(channel: Channel) {
-		if (channel.id) {
+		if (channel.id && $selectedPlaylist?.id) {
 			try {
-				console.log('Setting selected channel:', channel.id, 'for playlist:', playlist_id);
-				await setSelectedChannel(playlist_id, channel.id);
-				selectedChannel = channel;
+				console.log('Setting selected channel:', channel.id, 'for playlist:', $selectedPlaylist.id);
+				await setSelectedChannel($selectedPlaylist.id, channel.id);
+				
+				// Add authenticated stream URL to the channel
+				const channelWithAuth = {
+					...channel,
+					authenticated_stream_url: getAuthenticatedStreamUrl(channel.stream_url)
+				};
+				
+				selectedChannel = channelWithAuth;
+				selectedChannelStore.set(channelWithAuth);
 			} catch (error) {
 				console.error('Error setting selected channel:', error);
 			}
@@ -115,13 +124,14 @@
 </script>
 
 <div class="w-full max-w-3xl mx-auto space-y-4">
-	{#if selectedChannel}
+	<!--
+	{#if false && selectedChannel}
 		<div class="w-full">
 			<VideoPlayer src={getAuthenticatedStreamUrl(selectedChannel.stream_url)} />
 			<div class="mt-2 text-lg font-semibold">{selectedChannel.name}</div>
 		</div>
 	{/if}
-
+	-->
 	<Accordion.Root type="single">
 		{#each categories as category (category.id)}
 			<Accordion.Item value={category.id}>

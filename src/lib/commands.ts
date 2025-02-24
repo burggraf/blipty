@@ -39,6 +39,7 @@ export interface Channel {
     name: string;
     stream_type: string;
     stream_url: string;
+    authenticated_stream_url?: string;
     created_at?: string;
 }
 
