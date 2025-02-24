@@ -113,7 +113,7 @@
 	}
 </script>
 
-<div class="video-container w-full aspect-video bg-black">
+<div class="video-container w-full h-full bg-black">
 	<video
 		id={videoId}
 		controls

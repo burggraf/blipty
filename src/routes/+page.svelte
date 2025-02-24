@@ -177,12 +177,16 @@ import { selectedPlaylist, selectedChannel } from '$lib/stores';
 
 </script>
 
-{#if $selectedChannel && $selectedChannel.authenticated_stream_url}
-<div class="w-full">
-	<VideoPlayer src={$selectedChannel.authenticated_stream_url} />
-	<div class="mt-2 text-lg font-semibold">{$selectedChannel.name}</div>
-</div>
-{/if}
+<main class="w-full h-screen p-4">
+	{#if $selectedChannel && $selectedChannel.authenticated_stream_url}
+		<div class="w-full h-[calc(100vh-2rem)] flex flex-col">
+			<div class="flex-1 w-full">
+				<VideoPlayer src={$selectedChannel.authenticated_stream_url} />
+			</div>
+			<div class="p-2 text-lg font-semibold">{$selectedChannel.name}</div>
+		</div>
+	{/if}
+</main>
 
 <!--
 <div
