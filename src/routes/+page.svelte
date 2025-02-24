@@ -177,8 +177,7 @@ import { selectedPlaylist, selectedChannel } from '$lib/stores';
 
 </script>
 
-selectedChannel: {JSON.stringify($selectedChannel)}<br/>
-{#if $selectedChannel}
+{#if $selectedChannel && $selectedChannel.authenticated_stream_url}
 <div class="w-full">
 	<VideoPlayer src={$selectedChannel.authenticated_stream_url} />
 	<div class="mt-2 text-lg font-semibold">{$selectedChannel.name}</div>
