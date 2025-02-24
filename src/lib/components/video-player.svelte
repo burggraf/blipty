@@ -265,7 +265,7 @@
 	.video-wrapper {
 		position: absolute;
 		top: 2rem;
-		left: 0;
+		left: 24rem;
 		right: 0;
 		bottom: 0;
 
