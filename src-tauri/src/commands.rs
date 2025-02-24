@@ -105,7 +105,7 @@ pub fn init_db(conn: &Connection) -> SqliteResult<()> {
         "CREATE TABLE IF NOT EXISTS categories (
             id INTEGER PRIMARY KEY,
             playlist_id INTEGER NOT NULL,
-            category_id TEXT NOT NULL,
+            category_id INTEGER NOT NULL,
             name TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE,
@@ -118,7 +118,7 @@ pub fn init_db(conn: &Connection) -> SqliteResult<()> {
         "CREATE TABLE IF NOT EXISTS channels (
             id INTEGER PRIMARY KEY,
             playlist_id INTEGER NOT NULL,
-            category_id TEXT,
+            category_id INTEGER,
             stream_id TEXT NOT NULL,
             name TEXT NOT NULL,
             stream_type TEXT NOT NULL,
