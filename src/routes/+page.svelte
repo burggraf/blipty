@@ -179,8 +179,8 @@ import { selectedPlaylist, selectedChannel } from '$lib/stores';
 
 <main class="w-full h-screen p-4">
 	{#if $selectedChannel && $selectedChannel.authenticated_stream_url}
-		<div class="w-full h-[calc(100vh-2rem)] flex flex-col">
-			<div class="flex-1 w-full">
+		<div class="flex flex-col w-full h-full">
+			<div class="flex-1 min-w-0 min-h-0">
 				<VideoPlayer src={$selectedChannel.authenticated_stream_url} />
 			</div>
 			<div class="p-2 text-lg font-semibold">{$selectedChannel.name}</div>
