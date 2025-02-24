@@ -3,6 +3,13 @@
 	import mpegts from 'mpegts.js';
 	import videojs from 'video.js';
 	import 'video.js/dist/video-js.css';
+	import { useSidebar } from "$lib/components/ui/sidebar/context.svelte";
+	const sidebar = useSidebar();
+	// Now you can use:
+	// sidebar.open - boolean for open state
+	// sidebar.openMobile - boolean for mobile open state
+	// sidebar.state - "expanded" or "collapsed"
+
 
 	export let src: string;
 	let videoId = `video-${Math.random().toString(36).substr(2, 9)}`;
@@ -246,7 +253,7 @@
 	$: handleSourceChange(src);
 </script>
 
-<div class="video-wrapper">
+<div class={`video-wrapper ${sidebar.open ? 'sidebaropen' : 'sidebarclosed'}`}>
 	<video
 		id={videoId}
 		class="video-js vjs-big-play-button-centered vjs-fluid vjs-default-skin vjs-controls-enabled"
@@ -265,14 +272,21 @@
 	.video-wrapper {
 		position: absolute;
 		top: 2rem;
-		left: 24rem;
+		/* left: 24rem;*/
 		right: 0;
 		bottom: 0;
 
-		background: red;
+		background: #000;
 		display: flex;
 		align-items: center;
 		justify-content: center;
+	}
+	.sidebaropen {
+		left: 24rem;
+	
+	}
+	.sidebarclosed {
+		left: 0;
 	}
 
 	:global(.video-js) {
