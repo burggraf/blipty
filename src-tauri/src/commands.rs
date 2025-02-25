@@ -46,6 +46,7 @@ pub struct Category {
     pub playlist_id: i64,
     pub category_id: String,
     pub name: String,
+    pub content_type: String,  // "live", "vod", or "series"
     pub created_at: Option<String>,
 }
 
@@ -86,6 +87,23 @@ pub struct SetSelectedChannelArgs {
     pub channel_id: i64,
 }
 
+fn migrate_db_v1(conn: &Connection) -> SqliteResult<()> {
+    // Check if content_type column exists
+    let columns: Vec<String> = conn
+        .prepare("PRAGMA table_info(categories)")?  
+        .query_map([], |row| Ok(row.get::<_, String>(1)?))?  
+        .collect::<Result<Vec<_>, _>>()?;
+
+    if !columns.contains(&"content_type".to_string()) {
+        println!("Adding content_type column to categories table");
+        conn.execute(
+            "ALTER TABLE categories ADD COLUMN content_type TEXT NOT NULL DEFAULT 'live'",
+            [],
+        )?;
+    }
+    Ok(())
+}
+
 pub fn init_db(conn: &Connection) -> SqliteResult<()> {
     conn.execute(
         "CREATE TABLE IF NOT EXISTS playlists (
@@ -105,8 +123,9 @@ pub fn init_db(conn: &Connection) -> SqliteResult<()> {
         "CREATE TABLE IF NOT EXISTS categories (
             id INTEGER PRIMARY KEY,
             playlist_id INTEGER NOT NULL,
-            category_id INTEGER NOT NULL,
+            category_id TEXT NOT NULL,
             name TEXT NOT NULL,
+            content_type TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE,
             UNIQUE(playlist_id, category_id)
@@ -118,7 +137,7 @@ pub fn init_db(conn: &Connection) -> SqliteResult<()> {
         "CREATE TABLE IF NOT EXISTS channels (
             id INTEGER PRIMARY KEY,
             playlist_id INTEGER NOT NULL,
-            category_id INTEGER,
+            category_id TEXT,
             stream_id TEXT NOT NULL,
             name TEXT NOT NULL,
             stream_type TEXT NOT NULL,
@@ -141,6 +160,10 @@ pub fn init_db(conn: &Connection) -> SqliteResult<()> {
     )?;
 
     println!("Database schema initialized successfully");
+    
+    // Run migrations
+    migrate_db_v1(conn)?;
+    
     Ok(())
 }
 
@@ -303,7 +326,7 @@ pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<
         let mut conn = db.0.lock().unwrap();
         let mut stmt = conn.prepare(
             "SELECT c.id, c.playlist_id, c.category_id, c.stream_id, c.name, c.stream_type, c.stream_url, 
-                    c.created_at, cat.name as category_name
+                    c.created_at, cat.name as category_name, cat.content_type as category_content_type
              FROM channels c
              INNER JOIN categories cat ON c.playlist_id = cat.playlist_id AND c.category_id = cat.category_id
              WHERE c.playlist_id = ?",
@@ -354,42 +377,126 @@ pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<
         url.set_path("player_api.php");
     }
 
-    url.query_pairs_mut()
+    let client = reqwest::Client::new();
+
+    // First fetch categories for each content type
+    let mut all_categories = std::collections::HashMap::new();
+    
+    // Fetch live categories
+    let mut live_categories_url = url.clone();
+    live_categories_url.query_pairs_mut()
+        .append_pair("username", &username)
+        .append_pair("password", &password)
+        .append_pair("action", "get_live_categories");
+    
+    println!("[Debug] Fetching live categories from URL: {}", live_categories_url);
+    let live_categories = client.get(live_categories_url).send().await?.json::<Vec<serde_json::Value>>().await?;
+    for cat in live_categories {
+        if let (Some(cat_id), Some(cat_name)) = (cat["category_id"].as_str(), cat["category_name"].as_str()) {
+            all_categories.insert(cat_id.to_string(), (cat_name.to_string(), "live".to_string()));
+        }
+    }
+
+    // Fetch VOD categories
+    let mut vod_categories_url = url.clone();
+    vod_categories_url.query_pairs_mut()
+        .append_pair("username", &username)
+        .append_pair("password", &password)
+        .append_pair("action", "get_vod_categories");
+    
+    println!("[Debug] Fetching VOD categories from URL: {}", vod_categories_url);
+    let vod_categories = client.get(vod_categories_url).send().await?.json::<Vec<serde_json::Value>>().await?;
+    for cat in vod_categories {
+        if let (Some(cat_id), Some(cat_name)) = (cat["category_id"].as_str(), cat["category_name"].as_str()) {
+            all_categories.insert(cat_id.to_string(), (cat_name.to_string(), "vod".to_string()));
+        }
+    }
+
+    // Fetch series categories
+    let mut series_categories_url = url.clone();
+    series_categories_url.query_pairs_mut()
+        .append_pair("username", &username)
+        .append_pair("password", &password)
+        .append_pair("action", "get_series_categories");
+    
+    println!("[Debug] Fetching series categories from URL: {}", series_categories_url);
+    let series_categories = client.get(series_categories_url).send().await?.json::<Vec<serde_json::Value>>().await?;
+    for cat in series_categories {
+        if let (Some(cat_id), Some(cat_name)) = (cat["category_id"].as_str(), cat["category_name"].as_str()) {
+            all_categories.insert(cat_id.to_string(), (cat_name.to_string(), "series".to_string()));
+        }
+    }
+
+    println!("[Debug] Total categories found: {}", all_categories.len());
+    let mut all_channels = Vec::new();
+
+    // Fetch live streams
+    let mut live_url = url.clone();
+    live_url.query_pairs_mut()
         .append_pair("username", &username)
         .append_pair("password", &password)
         .append_pair("action", "get_live_streams");
 
-    let client = reqwest::Client::new();
-    let response = client.get(url).send().await?;
-    let body = response.text().await?;
-    let json_value: serde_json::Value = serde_json::from_str(&body)?;
+    println!("[Debug] Fetching live streams from URL: {}", live_url);
+    let response = client.get(live_url).send().await?;
+    println!("[Debug] Live streams response status: {}", response.status());
+    let live_streams: Vec<serde_json::Value> = response.json().await?;
+    println!("[Debug] Found {} live streams", live_streams.len());
+    all_channels.extend(live_streams.into_iter().map(|mut stream| {
+        stream["stream_type"] = serde_json::Value::String("live".to_string());
+        stream
+    }));
 
-    println!("API Response: {}", body);
+    // Fetch VOD streams
+    let mut vod_url = url.clone();
+    vod_url.query_pairs_mut()
+        .append_pair("username", &username)
+        .append_pair("password", &password)
+        .append_pair("action", "get_vod_streams");
 
-    let channels = if json_value.is_array() {
-        println!("Response is a direct array");
-        json_value.as_array().unwrap().to_vec()
-    } else if let Some(obj) = json_value.as_object() {
-        println!("Response is an object with keys: {}", obj.keys().map(|k| k.as_str()).collect::<Vec<_>>().join(", "));
-        if let Some(arr) = obj.get("channels").and_then(|v| v.as_array()) {
-            println!("Found channels array");
-            arr.to_vec()
-        } else if let Some(arr) = obj.get("data").and_then(|v| v.as_array()) {
-            println!("Found data array");
-            arr.to_vec()
-        } else if let Some(arr) = obj.get("live_streams").and_then(|v| v.as_array()) {
-            println!("Found live_streams array");
-            arr.to_vec()
-        } else {
-            return Err(Error::Internal("Could not find channel array".to_string()));
-        }
-    } else {
-        return Err(Error::Internal("Invalid response format".to_string()));
-    };
+    println!("[Debug] Fetching VOD streams from URL: {}", vod_url);
+    let response = client.get(vod_url).send().await?;
+    println!("[Debug] VOD streams response status: {}", response.status());
+    let vod_streams: Vec<serde_json::Value> = response.json().await?;
+    println!("[Debug] Found {} VOD streams", vod_streams.len());
+    all_channels.extend(vod_streams.into_iter().map(|mut stream| {
+        stream["stream_type"] = serde_json::Value::String("vod".to_string());
+        stream
+    }));
 
-    // Log the first channel as an example
+    // Fetch series streams
+    let mut series_url = url.clone();
+    series_url.query_pairs_mut()
+        .append_pair("username", &username)
+        .append_pair("password", &password)
+        .append_pair("action", "get_series");
+
+    println!("[Debug] Fetching series from URL: {}", series_url);
+    let response = client.get(series_url).send().await?;
+    println!("[Debug] Series response status: {}", response.status());
+    let series_streams: Vec<serde_json::Value> = response.json().await?;
+    println!("[Debug] Found {} series", series_streams.len());
+    all_channels.extend(series_streams.into_iter().map(|mut stream| {
+        stream["stream_type"] = serde_json::Value::String("series".to_string());
+        stream
+    }));
+
+    println!("[Debug] Total streams found: {}", all_channels.len());
+    let channels = all_channels;
+
+    // Log channel statistics and example data
+    println!("[Debug] Total channels found: {}", channels.len());
     if let Some(first_channel) = channels.first() {
-        println!("Example channel data: {}", serde_json::to_string_pretty(first_channel).unwrap());
+        println!("[Debug] Example channel data:\n{}", serde_json::to_string_pretty(first_channel).unwrap());
+        
+        // Log available fields in the first channel
+        if let Some(obj) = first_channel.as_object() {
+            println!("[Debug] Available channel fields: {}", 
+                obj.keys()
+                   .map(|k| k.as_str())
+                   .collect::<Vec<_>>()
+                   .join(", "));
+        }
     }
 
     let get_string_value = |value: &serde_json::Value| {
@@ -411,18 +518,17 @@ pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<
             .or_else(|| get_string_value(&channel["group"]))
             .unwrap_or_else(|| "default".to_string());
 
-        // Try to get category name from various possible fields
-        let cat_name = channel["category_name"]
-            .as_str()
-            .or_else(|| channel["name"].as_str())
-            .or_else(|| channel["group_title"].as_str())
-            .or_else(|| channel["category"].as_str())
-            .map(String::from)
-            .unwrap_or_else(|| "Uncategorized".to_string());
+        // Get category info from our fetched categories
+        let (cat_name, content_type) = all_categories
+            .get(&cat_id)
+            .cloned()
+            .unwrap_or_else(|| ("Uncategorized".to_string(), "live".to_string()));
 
-        // Always insert a category, but only if we haven't seen this ID before
-        // This ensures we keep the first category name we find for each ID
-        categories.entry(cat_id).or_insert(cat_name);
+        // Insert category with its type
+        categories.entry(cat_id.clone()).or_insert_with(|| cat_name.clone());
+        
+        // Store the content type for later use when inserting into database
+        let cat_type = content_type;
     }
 
     {
@@ -448,9 +554,14 @@ pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<
                 "Debug: Inserting category: id={}, cat_id={}, name={}",
                 id, cat_id, cat_name
             );
+            let (_, content_type) = all_categories
+                .get(cat_id.as_str())
+                .cloned()
+                .unwrap_or_else(|| ("Unknown".to_string(), "live".to_string()));
+
             tx.execute(
-                "INSERT INTO categories (playlist_id, category_id, name, created_at) VALUES (?1, ?2, ?3, ?4)",
-                params![id, cat_id, cat_name, now],
+                "INSERT INTO categories (playlist_id, category_id, name, content_type, created_at) VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![id, cat_id, cat_name, content_type, now],
             )?;
         }
         println!("Finished inserting categories");
@@ -495,13 +606,37 @@ pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<
                 .unwrap_or("live")
                 .to_string();
 
-            let stream_url = format!(
-                "{}/live/{}/{}/{}",
-                server_url.trim_end_matches("/player_api.php"),
-                username,
-                password,
-                stream_id
-            );
+            // Build stream URL based on content type
+            let stream_url = match stream_type.as_str() {
+                "live" => format!(
+                    "{}/live/{}/{}/{}",
+                    server_url.trim_end_matches("/player_api.php"),
+                    username,
+                    password,
+                    stream_id
+                ),
+                "vod" => format!(
+                    "{}/movie/{}/{}/{}",
+                    server_url.trim_end_matches("/player_api.php"),
+                    username,
+                    password,
+                    stream_id
+                ),
+                "series" => format!(
+                    "{}/series/{}/{}/{}",
+                    server_url.trim_end_matches("/player_api.php"),
+                    username,
+                    password,
+                    stream_id
+                ),
+                _ => format!(
+                    "{}/live/{}/{}/{}",
+                    server_url.trim_end_matches("/player_api.php"),
+                    username,
+                    password,
+                    stream_id
+                )
+            };
 
             tx.execute(
                 "INSERT INTO channels (playlist_id, category_id, stream_id, name, stream_type, stream_url, created_at)
