@@ -34,6 +34,7 @@ import { selectedPlaylist, selectedChannel as selectedChannelStore } from '$lib/
 	}
 
 	function getAuthenticatedStreamUrl(streamUrl: string): string {
+		console.log('Getting authenticated stream URL');
 		console.log('Current playlist:', currentPlaylist);
 		console.log('Original stream URL:', streamUrl);
 		
@@ -56,10 +57,12 @@ import { selectedPlaylist, selectedChannel as selectedChannelStore } from '$lib/
 			url.searchParams.set('password', currentPlaylist.password);
 			
 			const authenticatedUrl = url.toString();
-			console.log('Authenticated URL:', authenticatedUrl);
+			console.log('Authenticated URL created:', authenticatedUrl);
 			return authenticatedUrl;
 		} catch (error) {
 			console.error('Error adding authentication to URL:', error);
+			console.error('Error details:', error instanceof Error ? error.message : String(error));
+			console.log('Falling back to original URL:', streamUrl);
 			return streamUrl;
 		}
 	}
@@ -106,18 +109,25 @@ import { selectedPlaylist, selectedChannel as selectedChannelStore } from '$lib/
 		if (channel.id && $selectedPlaylist?.id) {
 			try {
 				console.log('Setting selected channel:', channel.id, 'for playlist:', $selectedPlaylist.id);
+				console.log('Channel details:', JSON.stringify(channel, null, 2));
 				await setSelectedChannel($selectedPlaylist.id, channel.id);
 				
 				// Add authenticated stream URL to the channel
+				console.log('Generating authenticated stream URL for channel:', channel.name);
+				const authenticatedUrl = getAuthenticatedStreamUrl(channel.stream_url);
+				console.log('Final authenticated URL that will be used:', authenticatedUrl);
+				
 				const channelWithAuth = {
 					...channel,
-					authenticated_stream_url: getAuthenticatedStreamUrl(channel.stream_url)
+					authenticated_stream_url: authenticatedUrl
 				};
 				
 				selectedChannel = channelWithAuth;
 				selectedChannelStore.set(channelWithAuth);
+				console.log('Channel with auth set in store:', channelWithAuth);
 			} catch (error) {
 				console.error('Error setting selected channel:', error);
+				console.error('Error details:', error instanceof Error ? error.message : String(error));
 			}
 		}
 	}

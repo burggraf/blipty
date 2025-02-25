@@ -20,6 +20,11 @@
 	let maxRetries = 3;
 	let stallTimeout: NodeJS.Timeout | null = null;
 
+	// Log the stream URL when it changes
+	$: {
+		console.log('Stream URL to load:', src);
+	}
+
 	function destroyPlayer() {
 		console.log('Destroying players...');
 		if (player) {
@@ -100,6 +105,7 @@
 			vjsPlayer.addClass('vjs-show-controls');
 
 			// Then initialize mpegts.js
+			console.log('Creating mpegts player with URL:', src);
 			player = mpegts.createPlayer({
 				type: 'flv',
 				isLive: true,
