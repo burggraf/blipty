@@ -47,7 +47,8 @@ pub fn run() {
             update_playlist,
             fetch_channels,
             set_selected_channel,
-            get_selected_channel
+            get_selected_channel,
+            get_categories
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
