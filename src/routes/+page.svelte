@@ -235,7 +235,7 @@ import { selectedPlaylist, selectedChannel } from '$lib/stores';
 				<Card.Title
 					class="text-3xl font-bold text-center bg-gradient-to-r from-indigo-500 to-pink-500 bg-clip-text text-transparent"
 				>
-					IPTV Providers
+					Blipty Providers
 				</Card.Title>
 			</Card.Header>
 			<Card.Content class="p-6 space-y-4">

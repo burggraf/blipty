@@ -62,7 +62,7 @@
 <Card.Root class="w-[380px] backdrop-blur-sm bg-white/90 dark:bg-gray-800/90">
 	<Card.Header>
 		<Card.Title class="text-2xl font-bold">Edit Provider</Card.Title>
-		<Card.Description>Update your IPTV provider details</Card.Description>
+		<Card.Description>Update your Blipty provider details</Card.Description>
 	</Card.Header>
 
 	<Card.Content>

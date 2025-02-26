@@ -1,42 +1,56 @@
-# Tauri 2 Svelte 5 Boilerplate
-Simple boilerplate for Tauri 2 with Svelte 5 (and shadcn-svelte) using Bun runtime.
+# Blipty
 
-## Requirements
-In order to run this boilerplate, you need to install Bun and Rust. If you are on Windows I also recommend installing MSVC before the other dependencies (make sure to check the "Desktop development with C++" workload).
+Blipty is a modern streaming media companion application that helps you manage and watch your streaming content from various providers.
 
-Some useful links:
-- https://bun.sh/docs/installation
-- https://www.rust-lang.org/tools/install
-- https://visualstudio.microsoft.com/vs/community/
+## Features
 
-## Setup
+- Manage multiple streaming providers in one place
+- Browse channels and content with an intuitive interface
+- Watch streams directly within the application
+- Cross-platform desktop application (macOS, Windows, Linux)
+- Support for various streaming formats including HLS and MPEG-TS
+
+## Development
+
+Blipty is built with:
+
+- [Tauri 2](https://tauri.app/) - For cross-platform desktop app functionality
+- [Svelte 5](https://svelte.dev/) - For reactive UI components
+- [ShadCN](https://next.shadcn-svelte.com/) - For beautiful UI components
+
+### Requirements
+
+To develop Blipty, you need:
+
+- [Bun](https://bun.sh/docs/installation) - JavaScript runtime and package manager
+- [Rust](https://www.rust-lang.org/tools/install) - Required for Tauri
+- If on Windows, [MSVC](https://visualstudio.microsoft.com/vs/community/) with "Desktop development with C++" workload
+
+### Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/blipty.git
+cd blipty
+
+# Install dependencies
+bun install
 ```
-git clone https://github.com/alysonhower/tauri2-svelte5-shadcn.git
-cd tauri2-svelte5-shadcn
-bun i
-```
-## Useful commands
-### Start dev server
-```
+
+### Development Commands
+
+```bash
+# Start development server
 bun run tauri dev
-```
 
-### Build executable
-```
+# Build executable
 bun run tauri build
 ```
 
-## Other links
-### Svelte 5
-https://svelte.dev/docs
-
-### Tauri 2
-https://tauri.app/start/
-
-### shadcn-svelte
-https://next.shadcn-svelte.com/
-
-Note: Boilerplate tested on Windows 11 only.
-
 ## License
+
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Website
+
+Visit [https://blipty.net](https://blipty.net) for more information.

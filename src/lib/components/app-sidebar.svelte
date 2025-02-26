@@ -165,11 +165,11 @@ import { selectedPlaylist, selectedChannel } from '$lib/stores';
         {:else if providers.length > 0}
             <Card.Root class="w-[380px] backdrop-blur-sm bg-white/90 dark:bg-gray-800/90">
                 <Card.Header class="space-y-2">
-                    <Card.Title
-                        class="text-3xl font-bold text-center bg-gradient-to-r from-indigo-500 to-pink-500 bg-clip-text text-transparent"
-                    >
-                        IPTV Providers
-                    </Card.Title>
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-lg font-semibold tracking-tight">
+                            Blipty Providers
+                        </h2>
+                    </div>
                 </Card.Header>
                 <Card.Content class="p-6 space-y-4">
                     {#each providers as provider}

@@ -42,7 +42,7 @@
 <Card.Root class="w-[380px]">
 	<Card.Header>
 		<Card.Title class="text-2xl font-bold">Add New Provider</Card.Title>
-		<Card.Description>Enter your IPTV provider details below</Card.Description>
+		<Card.Description>Enter your Blipty provider details below</Card.Description>
 	</Card.Header>
 
 	<Card.Content>
