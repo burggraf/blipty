@@ -654,7 +654,7 @@ pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<
     // First, store all categories
     {
         let mut conn = db.0.lock().unwrap();
-        let mut tx = conn.transaction()?;
+        let tx = conn.transaction()?;
         println!("Starting category refresh for playlist {}", id);
 
         // Delete all related records in the correct order
@@ -690,7 +690,7 @@ pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<
     // Then, store all channels
     {
         let mut conn = db.0.lock().unwrap();
-        let mut tx = conn.transaction()?;
+        let tx = conn.transaction()?;
         println!("Starting to insert {} channels", all_channels.len());
 
         for channel in all_channels {
