@@ -2,23 +2,47 @@
 	import * as Accordion from '$lib/components/ui/accordion';
 	import type { Channel, Playlist } from '$lib/commands';
 	import { setSelectedChannel, getSelectedChannel, getPlaylists } from '$lib/commands';
-import { selectedPlaylist, selectedChannel as selectedChannelStore } from '$lib/stores';
+	import { selectedPlaylist, selectedChannel as selectedChannelStore } from '$lib/stores';
 	import VideoPlayer from './video-player.svelte';
-	import { onMount } from 'svelte';
 
-	export let channels: Channel[];
-	export let playlist_id: number;
+	const { channels, playlist_id } = $props<{
+		channels: Channel[];
+		playlist_id: number;
+	}>();
 
-	let currentPlaylist: Playlist | null = null;
+	let currentPlaylist = $state<Playlist | null>(null);
 
 	// Currently selected channel
-	let selectedChannel: Channel | null = null;
+	let selectedChannel = $state<Channel | null>(null);
+	// Track store value locally
+	let storeValue = $state<Channel | null>(null);
 
-	onMount(async () => {
+	// Subscribe to the store and update local state
+	$effect(() => {
+		const unsubscribe = selectedChannelStore.subscribe((value) => {
+			storeValue = value;
+		});
+
+		return unsubscribe;
+	});
+
+	// Load initial data when playlist_id is available
+	function loadInitialData() {
 		if (playlist_id) {
-			await loadPlaylistInfo();
-			await loadSelectedChannel();
+			loadPlaylistInfo()
+				.then(() => {
+					loadSelectedChannel().catch((error) => {
+						console.error('Error loading selected channel:', error);
+					});
+				})
+				.catch((error) => {
+					console.error('Error loading playlist info:', error);
+				});
 		}
+	}
+
+	$effect(() => {
+		loadInitialData();
 	});
 
 	async function loadPlaylistInfo() {
@@ -26,7 +50,7 @@ import { selectedPlaylist, selectedChannel as selectedChannelStore } from '$lib/
 			const playlists = await getPlaylists();
 			console.log('All playlists:', playlists);
 			console.log('Looking for playlist ID:', playlist_id);
-			currentPlaylist = playlists.find(p => p.id === playlist_id) || null;
+			currentPlaylist = playlists.find((p) => p.id === playlist_id) || null;
 			console.log('Found playlist:', currentPlaylist);
 		} catch (error) {
 			console.error('Error loading playlist info:', error);
@@ -37,15 +61,15 @@ import { selectedPlaylist, selectedChannel as selectedChannelStore } from '$lib/
 		console.log('Getting authenticated stream URL');
 		console.log('Current playlist:', currentPlaylist);
 		console.log('Original stream URL:', streamUrl);
-		
+
 		if (!currentPlaylist) {
 			console.log('No playlist available, returning original URL');
 			return streamUrl;
 		}
-		
+
 		try {
 			const url = new URL(streamUrl);
-			
+
 			// Check if URL already has username/password parameters
 			if (url.searchParams.has('username') || url.searchParams.has('password')) {
 				console.log('URL already has credentials, using as is');
@@ -55,7 +79,7 @@ import { selectedPlaylist, selectedChannel as selectedChannelStore } from '$lib/
 			// Add credentials as query parameters
 			url.searchParams.set('username', currentPlaylist.username);
 			url.searchParams.set('password', currentPlaylist.password);
-			
+
 			const authenticatedUrl = url.toString();
 			console.log('Authenticated URL created:', authenticatedUrl);
 			return authenticatedUrl;
@@ -79,91 +103,83 @@ import { selectedPlaylist, selectedChannel as selectedChannelStore } from '$lib/
 	}
 
 	// Group channels by category
-	$: channelsByCategory = channels.reduce((acc, channel) => {
-		// Get or create the category in the map
-		const categoryId = channel.category_id || 'uncategorized';
-		const category = acc.get(categoryId) || {
-			name: channel.category_name || 'Uncategorized',
-			channels: []
-		};
-		category.channels.push(channel);
-		acc.set(categoryId, category);
-		return acc;
-	}, new Map<string, { name: string; channels: Channel[] }>());
+	let channelsByCategory = $derived(
+		channels.reduce((acc: any, channel: any) => {
+			// Get or create the category in the map
+			const categoryId = channel.category_id || 'uncategorized';
+			const category = acc.get(categoryId) || {
+				name: channel.category_name || 'Uncategorized',
+				channels: []
+			};
+			category.channels.push(channel);
+			acc.set(categoryId, category);
+			return acc;
+		}, new Map<string, { name: string; channels: Channel[] }>())
+	);
 
 	// Convert to array and sort by category name
-	$: categories = Array.from(channelsByCategory.entries())
-		.map(([id, data]) => ({
-			id,
-			name: data.name,
-			channels: data.channels.sort((a, b) => a.name.localeCompare(b.name))
-		}))
-		.sort((a, b) => {
-			// Put Uncategorized at the end
-			if (a.name === 'Uncategorized') return 1;
-			if (b.name === 'Uncategorized') return -1;
-			return a.name.localeCompare(b.name);
-		});
+	let categories = $derived(
+		Array.from(channelsByCategory.entries())
+			.map((entry) => {
+				const [id, category] = entry as [string, { name: string; channels: Channel[] }];
+				return {
+					id,
+					name: category.name,
+					channels: category.channels.sort((a, b) => a.name.localeCompare(b.name))
+				};
+			})
+			.sort((a, b) => a.name.localeCompare(b.name))
+	);
 
 	async function handleChannelClick(channel: Channel) {
-		if (channel.id && $selectedPlaylist?.id) {
-			try {
-				console.log('Setting selected channel:', channel.id, 'for playlist:', $selectedPlaylist.id);
-				console.log('Channel details:', JSON.stringify(channel, null, 2));
-				await setSelectedChannel($selectedPlaylist.id, channel.id);
-				
-				// Add authenticated stream URL to the channel
-				console.log('Generating authenticated stream URL for channel:', channel.name);
-				const authenticatedUrl = getAuthenticatedStreamUrl(channel.stream_url);
-				console.log('Final authenticated URL that will be used:', authenticatedUrl);
-				
-				const channelWithAuth = {
-					...channel,
-					authenticated_stream_url: authenticatedUrl
-				};
-				
-				selectedChannel = channelWithAuth;
-				selectedChannelStore.set(channelWithAuth);
-				console.log('Channel with auth set in store:', channelWithAuth);
-			} catch (error) {
-				console.error('Error setting selected channel:', error);
-				console.error('Error details:', error instanceof Error ? error.message : String(error));
+		try {
+			console.log('Channel clicked:', channel);
+
+			// Add authentication to stream URL
+			if (channel.stream_url) {
+				channel.authenticated_stream_url = getAuthenticatedStreamUrl(channel.stream_url);
+				console.log('Authenticated URL set:', channel.authenticated_stream_url);
 			}
+
+			// Update local state
+			selectedChannel = channel;
+
+			// Update the store with the selected channel
+			selectedChannelStore.set(channel);
+			console.log('Updated selectedChannelStore with:', channel);
+
+			// Save selection to backend
+			await setSelectedChannel(playlist_id, channel.id!);
+			console.log('Selected channel saved to backend');
+		} catch (error) {
+			console.error('Error selecting channel:', error);
 		}
 	}
 </script>
 
-<div class="w-full max-w-3xl mx-auto space-y-4">
-	<!--
-	{#if false && selectedChannel}
-		<div class="w-full">
-			<VideoPlayer src={getAuthenticatedStreamUrl(selectedChannel.stream_url)} />
-			<div class="mt-2 text-lg font-semibold">{selectedChannel.name}</div>
-		</div>
-	{/if}
-	-->
-	<Accordion.Root type="single">
-		{#each categories as category (category.id)}
+<div class="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+	{#each categories as category}
+		<Accordion.Root type="single">
 			<Accordion.Item value={category.id}>
-				<Accordion.Trigger class="flex justify-between items-center w-full">
-					<span class="text-lg font-semibold">{category.name}</span>
-					<span class="text-sm text-muted-foreground">({category.channels.length})</span>
+				<Accordion.Trigger class="text-lg font-medium">
+					{category.name} ({category.channels.length})
 				</Accordion.Trigger>
 				<Accordion.Content>
-					<div class="space-y-2 p-4">
-						{#each category.channels as channel (channel.stream_id)}
+					<div class="space-y-2 mt-2">
+						{#each category.channels as channel}
 							<button
-								class="w-full text-left border rounded-lg p-3 bg-white/50 dark:bg-gray-700/50 hover:bg-white/70 dark:hover:bg-gray-600/50 transition-colors"
-								class:ring-2={selectedChannel?.id === channel.id}
-								class:ring-primary={selectedChannel?.id === channel.id}
+								class="w-full text-left p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 flex items-center space-x-2 {selectedChannel?.id ===
+								channel.id
+									? 'bg-indigo-100 dark:bg-indigo-900/30'
+									: ''}"
 								on:click={() => handleChannelClick(channel)}
 							>
-								<div class="font-medium">{channel.name}</div>
+								<span class="truncate">{channel.name}</span>
 							</button>
 						{/each}
 					</div>
 				</Accordion.Content>
 			</Accordion.Item>
-		{/each}
-	</Accordion.Root>
+		</Accordion.Root>
+	{/each}
 </div>

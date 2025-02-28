@@ -4,12 +4,12 @@
 	import * as Card from '$lib/components/ui/card';
 	import { addPlaylist } from '$lib/commands';
 
-	let name = '';
-	let serverUrl = '';
-	let username = '';
-	let password = '';
-	let loading = false;
-	let error = '';
+	let name = $state('');
+	let serverUrl = $state('');
+	let username = $state('');
+	let password = $state('');
+	let loading = $state(false);
+	let error = $state('');
 
 	async function handleSubmit() {
 		if (!name || !serverUrl || !username || !password) {

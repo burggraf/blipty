@@ -4,18 +4,19 @@
 	import * as Card from '$lib/components/ui/card';
 	import { updatePlaylist } from '$lib/commands';
 	import type { Playlist } from '$lib/commands';
-	import { createEventDispatcher } from 'svelte';
 
-	const dispatch = createEventDispatcher();
+	const { provider, onSaved, onCancel } = $props<{
+		provider: Playlist;
+		onSaved?: () => void;
+		onCancel?: () => void;
+	}>();
 
-	export let provider: Playlist;
-
-	let name = provider.name;
-	let serverUrl = provider.server_url;
-	let username = provider.username;
-	let password = provider.password;
-	let loading = false;
-	let error = '';
+	let name = $state(provider.name);
+	let serverUrl = $state(provider.server_url);
+	let username = $state(provider.username);
+	let password = $state(provider.password);
+	let loading = $state(false);
+	let error = $state('');
 
 	async function handleSubmit(event: SubmitEvent) {
 		event.preventDefault();
@@ -44,7 +45,7 @@
 			await updatePlaylist(provider.id!, updatedPlaylist);
 
 			console.log('Update successful');
-			dispatch('saved');
+			onSaved?.();
 		} catch (e: any) {
 			console.error('Update failed:', e);
 			console.error('Full error object:', JSON.stringify(e, null, 2));
@@ -55,7 +56,7 @@
 	}
 
 	function handleCancel() {
-		dispatch('cancel');
+		onCancel?.();
 	}
 </script>
 
@@ -116,20 +117,16 @@
 			{/if}
 
 			<div class="flex gap-2">
-				<button
-					type="button"
-					class="flex-1 inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
-					onclick={handleCancel}
-				>
-					Cancel
-				</button>
-				<button
+				<Button
 					type="submit"
 					disabled={loading}
-					class="flex-1 inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-gradient-to-r from-indigo-500 to-pink-500 text-primary-foreground hover:opacity-90 h-10 px-4 py-2"
+					class="flex-1 bg-gradient-to-r from-indigo-500 to-pink-500 hover:opacity-90 transition-opacity duration-200"
 				>
 					{loading ? 'Saving...' : 'Save Changes'}
-				</button>
+				</Button>
+				<Button type="button" variant="outline" onclick={handleCancel} class="flex-1">
+					Cancel
+				</Button>
 			</div>
 		</form>
 	</Card.Content>

@@ -5,8 +5,14 @@
 	import PlaylistEditForm from '$lib/components/playlist-edit-form.svelte';
 	import ChannelList from '$lib/components/channel-list.svelte';
 	import { onMount } from 'svelte';
-	import { initializeDatabase, getSelectedChannel, getPlaylists, deletePlaylist, fetchChannels } from '$lib/commands';
-import { selectedPlaylist, selectedChannel } from '$lib/stores';
+	import {
+		initializeDatabase,
+		getSelectedChannel,
+		getPlaylists,
+		deletePlaylist,
+		fetchChannels
+	} from '$lib/commands';
+	import { selectedPlaylist, selectedChannel } from '$lib/stores';
 	import type { Channel, Playlist } from '$lib/commands';
 	import { buttonVariants } from '$lib/components/ui/button/button.svelte';
 	import { cn } from '$lib/utils';
@@ -14,19 +20,16 @@ import { selectedPlaylist, selectedChannel } from '$lib/stores';
 	import { writable } from 'svelte/store';
 	import VideoPlayer from '$lib/components/video-player.svelte';
 
-	
-
-
-	let providers: Playlist[] = [];
-	let error = '';
-	let loading = false;
-	let editingProvider: Playlist | null = null;
-	let currentProvider: Playlist | null = null;
-	let currentChannels: Channel[] = [];
-	const loadingProviders = writable(new Set<number>());
-	$: loadingSet = $loadingProviders;
-	export let playlist_id: number;
-	let currentPlaylist: Playlist | null = null;
+	let providers = $state<Playlist[]>([]);
+	let error = $state('');
+	let loading = $state(false);
+	let editingProvider = $state<Playlist | null>(null);
+	let currentProvider = $state<Playlist | null>(null);
+	let currentChannels = $state<Channel[]>([]);
+	let loadingSet = $state(new Set<number>());
+	const { playlist_id } = $props<{ playlist_id: number }>();
+	let currentPlaylist = $state<Playlist | null>(null);
+	let selectedChannelValue = $state<Channel | null>(null);
 
 	onMount(async () => {
 		try {
@@ -38,7 +41,6 @@ import { selectedPlaylist, selectedChannel } from '$lib/stores';
 				await loadPlaylistInfo();
 				await loadSelectedChannel();
 			}
-
 		} catch (e: any) {
 			error = e.message || 'Failed to initialize database';
 			console.error('Database initialization error:', e);
@@ -46,41 +48,47 @@ import { selectedPlaylist, selectedChannel } from '$lib/stores';
 			loading = false;
 		}
 	});
+
 	async function loadPlaylistInfo() {
 		try {
 			const playlists = await getPlaylists();
 			console.log('All playlists:', playlists);
 			console.log('Looking for playlist ID:', playlist_id);
-			currentPlaylist = playlists.find(p => p.id === playlist_id) || null;
+			currentPlaylist = playlists.find((p) => p.id === playlist_id) || null;
 			console.log('Found playlist:', currentPlaylist);
 		} catch (error) {
 			console.error('Error loading playlist info:', error);
 		}
 	}
 
-	// Load selected channel
 	async function loadSelectedChannel() {
 		try {
 			if (!playlist_id) {
 				console.log('No playlist_id available, cannot load selected channel');
+				selectedChannelValue = null;
 				return;
 			}
 			console.log('Loading selected channel for playlist:', playlist_id);
 			const channel = await getSelectedChannel(playlist_id);
-			selectedChannel.set(channel);
-			console.log('Selected channel:', channel);
+			// Update both the store and local state
+			if (channel) {
+				selectedChannelValue = channel;
+				console.log('Selected channel:', channel);
+			} else {
+				selectedChannelValue = null;
+				console.log('No channel selected');
+			}
 		} catch (error) {
 			console.error('Error loading selected channel:', error);
+			selectedChannelValue = null;
 		}
 	}
+
 	async function handleProviderClick(provider: Playlist) {
-		if ($loadingProviders.has(provider.id!)) return;
+		if (loadingSet.has(provider.id!)) return;
 
 		try {
-			loadingProviders.update((set) => {
-				set.add(provider.id!);
-				return set;
-			});
+			loadingSet.add(provider.id!);
 			error = '';
 			console.log(`Fetching channels for provider: ${provider.name} (ID: ${provider.id})`);
 
@@ -92,10 +100,7 @@ import { selectedPlaylist, selectedChannel } from '$lib/stores';
 			console.error('Failed to fetch channels:', e);
 			error = e.message || 'Failed to fetch channels';
 		} finally {
-			loadingProviders.update((set) => {
-				set.delete(provider.id!);
-				return set;
-			});
+			loadingSet.delete(provider.id!);
 		}
 	}
 
@@ -127,14 +132,6 @@ import { selectedPlaylist, selectedChannel } from '$lib/stores';
 		}
 	}
 
-	function handleEditSave() {
-		editingProvider = null;
-		// Refresh the providers list
-		getPlaylists().then((updatedProviders) => {
-			providers = updatedProviders;
-		});
-	}
-
 	function handleEditCancel() {
 		editingProvider = null;
 	}
@@ -143,19 +140,20 @@ import { selectedPlaylist, selectedChannel } from '$lib/stores';
 		currentProvider = null;
 		currentChannels = [];
 	}
+
 	function getAuthenticatedStreamUrl(streamUrl: string): string {
 		console.log('Getting authenticated stream URL');
 		console.log('Current playlist:', currentPlaylist);
 		console.log('Original stream URL:', streamUrl);
-		
+
 		if (!currentPlaylist) {
 			console.log('No playlist available, returning original URL');
 			return streamUrl;
 		}
-		
+
 		try {
 			const url = new URL(streamUrl);
-			
+
 			// Check if URL already has username/password parameters
 			if (url.searchParams.has('username') || url.searchParams.has('password')) {
 				console.log('URL already has credentials, using as is');
@@ -165,7 +163,7 @@ import { selectedPlaylist, selectedChannel } from '$lib/stores';
 			// Add credentials as query parameters
 			url.searchParams.set('username', currentPlaylist.username);
 			url.searchParams.set('password', currentPlaylist.password);
-			
+
 			const authenticatedUrl = url.toString();
 			console.log('Authenticated URL:', authenticatedUrl);
 			return authenticatedUrl;
@@ -175,15 +173,34 @@ import { selectedPlaylist, selectedChannel } from '$lib/stores';
 		}
 	}
 
+	// Subscribe to the selectedChannel store to update local state
+	$effect(() => {
+		const unsubscribe = selectedChannel.subscribe((value) => {
+			console.log('selectedChannel store updated:', value);
+			if (value) {
+				// If the channel has a stream URL, ensure it's authenticated
+				if (value.stream_url && !value.authenticated_stream_url) {
+					value.authenticated_stream_url = getAuthenticatedStreamUrl(value.stream_url);
+					console.log(
+						'Added authenticated URL to channel from store:',
+						value.authenticated_stream_url
+					);
+				}
+				selectedChannelValue = value;
+			}
+		});
+
+		return unsubscribe;
+	});
 </script>
 
 <main class="w-full h-screen p-4">
-	{#if $selectedChannel && $selectedChannel.authenticated_stream_url}
+	{#if selectedChannelValue && selectedChannelValue.authenticated_stream_url}
 		<div class="flex flex-col w-full h-full">
 			<div class="flex-1 min-w-0 min-h-0">
-				<VideoPlayer src={$selectedChannel.authenticated_stream_url} />
+				<VideoPlayer src={selectedChannelValue.authenticated_stream_url} />
 			</div>
-			<div class="p-2 text-lg font-semibold">{$selectedChannel.name}</div>
+			<div class="p-2 text-lg font-semibold">{selectedChannelValue.name}</div>
 		</div>
 	{/if}
 </main>
