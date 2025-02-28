@@ -52,20 +52,31 @@
 		}
 	}
 
+	let errorMessage = '';
+	let isError = false;
+
 	async function initializePlayer() {
 		try {
 			console.log('Initializing player for video ID:', videoId);
 			const element = document.getElementById(videoId);
 			if (!element) {
 				console.error('Video element not found:', videoId);
+				isError = true;
+				errorMessage = 'Failed to initialize video player';
 				return;
 			}
 			console.log('Video element found');
 
 			if (!mpegts.getFeatureList().mseLivePlayback) {
 				console.error('MSE live playback not supported in this browser');
+				isError = true;
+				errorMessage = 'Your browser does not support live video playback';
 				return;
 			}
+
+			// Reset error state
+			isError = false;
+			errorMessage = '';
 
 			// Wait for any previous player instances to be fully destroyed
 			await new Promise(resolve => setTimeout(resolve, 100));
@@ -125,13 +136,19 @@
 
 			// Handle errors
 			player.on(mpegts.Events.ERROR, (errorType, errorDetail) => {
-				console.error('Player error:', errorType, errorDetail);
-				if (retryCount < maxRetries) {
-					retryCount++;
-					console.log(`Retrying playback (${retryCount}/${maxRetries})...`);
-					destroyPlayer();
-					setTimeout(initializePlayer, 1000);
-				}
+				// Set error state and message
+				isError = true;
+				errorMessage = 'This video is not currently available';
+				
+				// Log error details for debugging
+				console.debug('Player error details:', {
+					type: errorType,
+					detail: errorDetail,
+					url: src
+				});
+				
+				// Clean up resources
+				destroyPlayer();
 			});
 
 			// Handle stall detection
@@ -139,7 +156,7 @@
 				if (stats.speed === 0) {
 					if (!stallTimeout) {
 						stallTimeout = setTimeout(() => {
-							console.log('Playback stalled, attempting recovery...');
+							console.debug('Playback stalled, attempting recovery');
 							destroyPlayer();
 							initializePlayer();
 						}, 5000);
@@ -156,6 +173,8 @@
 			player.play();
 		} catch (error) {
 			console.error('Error initializing player:', error);
+			isError = true;
+			errorMessage = 'Failed to initialize video player';
 		}
 	}
 
@@ -260,6 +279,11 @@
 </script>
 
 <div class={`video-wrapper ${sidebar.open ? 'sidebaropen' : 'sidebarclosed'}`}>
+	{#if isError}
+		<div class="error-message">
+			<p>{errorMessage}</p>
+		</div>
+	{/if}
 	<video
 		id={videoId}
 		class="video-js vjs-big-play-button-centered vjs-fluid vjs-default-skin vjs-controls-enabled"
@@ -310,5 +334,37 @@
 
 	:global(.vjs-fluid:not(.vjs-audio-only-mode)) {
 		padding-top: 0 !important;
+	}
+
+	.error-message {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		background: rgba(0, 0, 0, 0.8);
+		padding: 1.5rem;
+		border-radius: 0.5rem;
+		text-align: center;
+		color: white;
+		z-index: 1000;
+	}
+
+	.error-message p {
+		margin: 0 0 1rem 0;
+		font-size: 1.1rem;
+	}
+
+	.retry-button {
+		background: #4f46e5;
+		color: white;
+		border: none;
+		padding: 0.5rem 1rem;
+		border-radius: 0.25rem;
+		cursor: pointer;
+		transition: background-color 0.2s;
+	}
+
+	.retry-button:hover {
+		background: #4338ca;
 	}
 </style>
