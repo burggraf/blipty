@@ -139,7 +139,7 @@
 					lazyLoad: false,
 					stashInitialSize: 1024 * 1024 * 1 // 1MB initial buffer
 				}
-			});
+			} as mpegts.MediaDataSource);
 
 			// Handle errors
 			player.on(mpegts.Events.ERROR, (errorType, errorDetail) => {
