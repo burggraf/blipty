@@ -4,7 +4,6 @@
 	import PlaylistForm from '$lib/components/playlist-form.svelte';
 	import PlaylistEditForm from '$lib/components/playlist-edit-form.svelte';
 	import ChannelList from '$lib/components/channel-list.svelte';
-	import { onMount } from 'svelte';
 	import {
 		initializeDatabase,
 		getSelectedChannel,
@@ -31,7 +30,7 @@
 	let currentPlaylist = $state<Playlist | null>(null);
 	let selectedChannelValue = $state<Channel | null>(null);
 
-	onMount(async () => {
+	async function initializeApp() {
 		try {
 			loading = true;
 			await initializeDatabase();
@@ -47,6 +46,10 @@
 		} finally {
 			loading = false;
 		}
+	}
+
+	$effect(() => {
+		initializeApp();
 	});
 
 	async function loadPlaylistInfo() {
