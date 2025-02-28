@@ -1,30 +1,37 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
 	import mpegts from 'mpegts.js';
 	import videojs from 'video.js';
 	import 'video.js/dist/video-js.css';
-	import { useSidebar } from "$lib/components/ui/sidebar/context.svelte";
+	import { useSidebar } from '$lib/components/ui/sidebar/context.svelte';
+
+	let { src, channelName = '' } = $props<{ src: string; channelName?: string }>();
+	let videoId = $state(`video-${Math.random().toString(36).substring(2, 9)}`);
+	let player = $state<mpegts.Player | null>(null);
+	let vjsPlayer = $state<any>(null);
+	let currentSrc = $state<string | null>(null);
+	let retryCount = $state(0);
+	let maxRetries = $state(3);
+	let stallTimeout = $state<NodeJS.Timeout | null>(null);
+	let isError = $state(false);
+	let errorMessage = $state('');
+
 	const sidebar = useSidebar();
-	// Now you can use:
-	// sidebar.open - boolean for open state
-	// sidebar.openMobile - boolean for mobile open state
-	// sidebar.state - "expanded" or "collapsed"
 
-
-	export let src: string;
-	export let channelName: string = '';
-	let videoId = `video-${Math.random().toString(36).substr(2, 9)}`;
-	let player: mpegts.Player | null = null;
-	let vjsPlayer: any = null;
-	let currentSrc: string | null = null;
-	let retryCount = 0;
-	let maxRetries = 3;
-	let stallTimeout: NodeJS.Timeout | null = null;
-
-	// Log the stream URL when it changes
-	$: {
+	$effect(() => {
 		console.log('Stream URL to load:', src);
-	}
+
+		// Initialize on mount if we have a source
+		if (src) {
+			handleSourceChange(src);
+		}
+
+		return () => {
+			if (stallTimeout) {
+				clearTimeout(stallTimeout);
+			}
+			destroyPlayer();
+		};
+	});
 
 	function destroyPlayer() {
 		console.log('Destroying players...');
@@ -53,8 +60,7 @@
 		}
 	}
 
-	let errorMessage = '';
-	let isError = false;
+	// Variables already declared with $state above
 
 	async function initializePlayer() {
 		try {
@@ -80,7 +86,7 @@
 			errorMessage = '';
 
 			// Wait for any previous player instances to be fully destroyed
-			await new Promise(resolve => setTimeout(resolve, 100));
+			await new Promise((resolve) => setTimeout(resolve, 100));
 
 			// Initialize Video.js first
 			vjsPlayer = videojs(videoId, {
@@ -111,7 +117,7 @@
 					nativeVideoTracks: false
 				}
 			});
-			
+
 			// Add the live UI class
 			vjsPlayer.addClass('vjs-live');
 			vjsPlayer.addClass('vjs-show-controls');
@@ -131,7 +137,7 @@
 					liveBufferLatencyChasing: true,
 					liveSync: true,
 					lazyLoad: false,
-					stashInitialSize: 1024 * 1024 * 1, // 1MB initial buffer
+					stashInitialSize: 1024 * 1024 * 1 // 1MB initial buffer
 				}
 			});
 
@@ -140,14 +146,14 @@
 				// Set error state and message
 				isError = true;
 				errorMessage = 'This video is not currently available';
-				
+
 				// Log error details for debugging
 				console.debug('Player error details:', {
 					type: errorType,
 					detail: errorDetail,
 					url: src
 				});
-				
+
 				// Clean up resources
 				destroyPlayer();
 			});
@@ -179,21 +185,6 @@
 		}
 	}
 
-	onMount(() => {
-		// Initialize on mount if we have a source
-		if (src) {
-			handleSourceChange(src);
-		}
-	});
-
-	onDestroy(() => {
-		if (stallTimeout) {
-			clearTimeout(stallTimeout);
-		}
-		destroyPlayer();
-	});
-
-	// Update source when it changes
 	async function handleSourceChange(newSrc: string) {
 		if (newSrc === currentSrc) return;
 
@@ -205,13 +196,13 @@
 			clearTimeout(stallTimeout);
 			stallTimeout = null;
 		}
-		
+
 		// Ensure complete cleanup
 		destroyPlayer();
 
 		// Wait for DOM to be ready
-		await new Promise(resolve => setTimeout(resolve, 100));
-		
+		await new Promise((resolve) => setTimeout(resolve, 100));
+
 		// Create a new video element to ensure clean state
 		let wrapper = document.querySelector('.video-wrapper');
 		let attempts = 0;
@@ -219,7 +210,7 @@
 
 		// Try to find the wrapper
 		while (!wrapper && attempts < maxAttempts) {
-			await new Promise(resolve => setTimeout(resolve, 100));
+			await new Promise((resolve) => setTimeout(resolve, 100));
 			wrapper = document.querySelector('.video-wrapper');
 			attempts++;
 			console.log(`Attempting to find video wrapper (${attempts}/${maxAttempts})`);
@@ -236,18 +227,19 @@
 			console.log('Removing old video element');
 			wrapper.removeChild(oldVideo);
 		}
-		
+
 		// Generate a new unique ID for the video element
 		videoId = `video-${Math.random().toString(36).substr(2, 9)}`;
 		console.log('Creating new video element with ID:', videoId);
-		
+
 		// Create new video element
 		const newVideo = document.createElement('video');
 		newVideo.id = videoId;
-		newVideo.className = 'video-js vjs-big-play-button-centered vjs-fluid vjs-default-skin vjs-controls-enabled';
+		newVideo.className =
+			'video-js vjs-big-play-button-centered vjs-fluid vjs-default-skin vjs-controls-enabled';
 		newVideo.setAttribute('playsinline', '');
 		newVideo.setAttribute('controls', '');
-		
+
 		// Add track and fallback content
 		const track = document.createElement('track');
 		track.kind = 'captions';
@@ -256,15 +248,16 @@
 
 		const fallback = document.createElement('p');
 		fallback.className = 'vjs-no-js';
-		fallback.textContent = 'To view this video please enable JavaScript, and consider upgrading to a web browser that supports HTML5 video';
+		fallback.textContent =
+			'To view this video please enable JavaScript, and consider upgrading to a web browser that supports HTML5 video';
 		newVideo.appendChild(fallback);
-		
+
 		// Add to DOM
 		wrapper.appendChild(newVideo);
 		console.log('New video element added to DOM');
 
 		// Wait for the video element to be properly added to the DOM
-		await new Promise(resolve => setTimeout(resolve, 100));
+		await new Promise((resolve) => setTimeout(resolve, 100));
 
 		// Verify the element exists and initialize
 		const element = document.getElementById(videoId);
@@ -276,7 +269,11 @@
 		}
 	}
 
-	$: handleSourceChange(src);
+	$effect(() => {
+		if (src !== currentSrc) {
+			handleSourceChange(src);
+		}
+	});
 </script>
 
 <div class={`video-wrapper ${sidebar.open ? 'sidebaropen' : 'sidebarclosed'}`}>
@@ -296,8 +293,8 @@
 	>
 		<track kind="captions" src="" label="Captions" />
 		<p class="vjs-no-js">
-			To view this video please enable JavaScript, and consider upgrading to a
-			web browser that supports HTML5 video
+			To view this video please enable JavaScript, and consider upgrading to a web browser that
+			supports HTML5 video
 		</p>
 	</video>
 </div>
@@ -317,7 +314,6 @@
 	}
 	.sidebaropen {
 		left: 24rem;
-	
 	}
 	.sidebarclosed {
 		left: 0;
