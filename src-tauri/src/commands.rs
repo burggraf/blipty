@@ -85,6 +85,8 @@ pub struct Channel {
     pub cover: Option<String>,
     pub created_at: Option<String>,
     pub category_name: Option<String>,
+    pub content_type: Option<String>,
+    pub authenticated_stream_url: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -435,6 +437,8 @@ pub async fn get_selected_channel(
             cover: row.get(29)?,
             created_at: row.get(30)?,
             category_name: Some(row.get(31)?),
+            content_type: Some(row.get(32)?),
+            authenticated_stream_url: None,
         })
     });
 
@@ -457,10 +461,11 @@ pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<
                     c.cast, c.director, c.genre, c.release_date, c.rating, c.rating_5based, c.backdrop_path, 
                     c.youtube_trailer, c.episode_run_time, c.cover, c.created_at, 
                     COALESCE(cat.name, c.category_name, 'Uncategorized') as category_name,
-                    cat.content_type as category_content_type
+                    COALESCE(cat.content_type, 'live') as content_type
              FROM channels c
              LEFT JOIN categories cat ON c.playlist_id = cat.playlist_id AND c.category_id = cat.category_id
-             WHERE c.playlist_id = ?",
+             WHERE c.playlist_id = ?
+             ORDER BY content_type, category_name, c.name",
         )?;
 
         let channels = stmt
@@ -500,6 +505,8 @@ pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<
                     cover: row.get(29)?,
                     created_at: row.get(30)?,
                     category_name: Some(row.get(31)?),
+                    content_type: Some(row.get(32)?),
+                    authenticated_stream_url: None,
                 })
             })?
             .collect::<SqliteResult<Vec<_>>>()?;
@@ -828,12 +835,12 @@ pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<
             stored_channels.push(Channel {
                 id: Some(tx.last_insert_rowid()),
                 playlist_id: id,
-                category_id,
+                category_id: category_id.clone(),
                 stream_id,
                 name,
                 stream_type,
                 type_name: channel["type_name"].as_str().map(String::from),
-                stream_url,
+                stream_url: stream_url.clone(),
                 stream_icon: channel["stream_icon"].as_str().map(String::from),
                 epg_channel_id: channel["epg_channel_id"].as_str().map(String::from),
                 added: channel["added"].as_str().map(String::from),
@@ -858,6 +865,9 @@ pub async fn fetch_channels(id: i64, db: State<'_, DbConnection>) -> Result<Vec<
                 cover: channel["cover"].as_str().map(String::from),
                 created_at: Some(now.clone()),
                 category_name: Some(category_name),
+                content_type: all_categories.get(&category_id.clone().unwrap_or_default())
+                    .map(|(_, content_type, _)| content_type.clone()),
+                authenticated_stream_url: Some(stream_url.clone()),
             });
         }
 

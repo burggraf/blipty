@@ -122,16 +122,16 @@
 				<Sidebar.Menu>
 					menu stuff<br />
 					<div
-						class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 transition-all duration-500"
+						class="w-full flex flex-col items-start p-2 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 transition-all duration-500"
 					>
 						{#if loading}
-							<Card.Root class="w-[380px] backdrop-blur-sm bg-white/90 dark:bg-gray-800/90">
+							<Card.Root class="w-full backdrop-blur-sm bg-white/90 dark:bg-gray-800/90">
 								<Card.Content class="p-6">
 									<p class="text-center text-gray-500">Loading...</p>
 								</Card.Content>
 							</Card.Root>
 						{:else if error}
-							<Card.Root class="w-[380px] backdrop-blur-sm bg-white/90 dark:bg-gray-800/90">
+							<Card.Root class="w-full backdrop-blur-sm bg-white/90 dark:bg-gray-800/90">
 								<Card.Content class="p-6">
 									<p class="text-red-500 text-center">{error}</p>
 								</Card.Content>
@@ -143,7 +143,7 @@
 								onCancel={handleEditCancel}
 							/>
 						{:else if currentProvider && currentChannels.length > 0}
-							<Card.Root class="w-[800px] backdrop-blur-sm bg-white/90 dark:bg-gray-800/90">
+							<Card.Root class="w-full backdrop-blur-sm bg-white/90 dark:bg-gray-800/90">
 								<Card.Header class="flex items-center space-x-4">
 									<button
 										class={cn(buttonVariants({ variant: 'outline', size: 'icon' }))}
@@ -162,7 +162,7 @@
 								</Card.Content>
 							</Card.Root>
 						{:else if providers.length > 0}
-							<Card.Root class="w-[380px] backdrop-blur-sm bg-white/90 dark:bg-gray-800/90">
+							<Card.Root class="w-full backdrop-blur-sm bg-white/90 dark:bg-gray-800/90">
 								<Card.Header class="space-y-2">
 									<div class="flex items-center justify-between">
 										<h2 class="text-lg font-semibold tracking-tight">Blipty Providers</h2>
