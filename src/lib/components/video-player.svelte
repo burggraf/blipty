@@ -12,6 +12,7 @@
 
 
 	export let src: string;
+	export let channelName: string = '';
 	let videoId = `video-${Math.random().toString(36).substr(2, 9)}`;
 	let player: mpegts.Player | null = null;
 	let vjsPlayer: any = null;
@@ -282,6 +283,9 @@
 	{#if isError}
 		<div class="error-message">
 			<p>{errorMessage}</p>
+			{#if channelName}
+				<p class="channel-name">{channelName}</p>
+			{/if}
 		</div>
 	{/if}
 	<video
@@ -350,8 +354,13 @@
 	}
 
 	.error-message p {
-		margin: 0 0 1rem 0;
+		margin: 0 0 0.5rem 0;
 		font-size: 1.1rem;
+	}
+
+	.error-message .channel-name {
+		font-size: 0.9rem;
+		color: #a1a1aa;
 	}
 
 	.retry-button {

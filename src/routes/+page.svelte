@@ -201,7 +201,10 @@
 	{#if selectedChannelValue && selectedChannelValue.authenticated_stream_url}
 		<div class="flex flex-col w-full h-full">
 			<div class="flex-1 min-w-0 min-h-0">
-				<VideoPlayer src={selectedChannelValue.authenticated_stream_url} />
+				<VideoPlayer 
+					src={selectedChannelValue.authenticated_stream_url} 
+					channelName={selectedChannelValue.name} 
+				/>
 			</div>
 			<div class="p-2 text-lg font-semibold">{selectedChannelValue.name}</div>
 		</div>
