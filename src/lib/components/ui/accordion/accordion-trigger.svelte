@@ -3,8 +3,9 @@
 	import ChevronDown from 'lucide-svelte/icons/chevron-down';
 	import { cn } from '$lib/utils.js';
 
-	type $$Props = AccordionPrimitive.TriggerProps;
-	type $$Events = AccordionPrimitive.TriggerEvents;
+	type $$Props = AccordionPrimitive.TriggerProps & {
+		level?: AccordionPrimitive.HeaderProps['level'];
+	};
 
 	let className: $$Props['class'] = undefined;
 	export let level: AccordionPrimitive.HeaderProps['level'] = 3;

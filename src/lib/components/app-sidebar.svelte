@@ -139,8 +139,8 @@
 						{:else if editingProvider}
 							<PlaylistEditForm
 								provider={editingProvider}
-								on:saved={handleEditSave}
-								on:cancel={handleEditCancel}
+								onSaved={handleEditSave}
+								onCancel={handleEditCancel}
 							/>
 						{:else if currentProvider && currentChannels.length > 0}
 							<Card.Root class="w-[800px] backdrop-blur-sm bg-white/90 dark:bg-gray-800/90">
