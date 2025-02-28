@@ -172,7 +172,7 @@
 								channel.id
 									? 'bg-indigo-100 dark:bg-indigo-900/30'
 									: ''}"
-								on:click={() => handleChannelClick(channel)}
+								onclick={() => handleChannelClick(channel)}
 							>
 								<span class="truncate">{channel.name}</span>
 							</button>

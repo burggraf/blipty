@@ -1,10 +1,10 @@
 <script lang="ts">
-    import Calendar from "lucide-svelte/icons/calendar";
-    import House from "lucide-svelte/icons/house";
-    import Inbox from "lucide-svelte/icons/inbox";
-    import Search from "lucide-svelte/icons/search";
-    import Settings from "lucide-svelte/icons/settings";
-    import * as Sidebar from "$lib/components/ui/sidebar/index.js";
+	import Calendar from 'lucide-svelte/icons/calendar';
+	import House from 'lucide-svelte/icons/house';
+	import Inbox from 'lucide-svelte/icons/inbox';
+	import Search from 'lucide-svelte/icons/search';
+	import Settings from 'lucide-svelte/icons/settings';
+	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import PlaylistForm from '$lib/components/playlist-form.svelte';
@@ -17,7 +17,7 @@
 	import { cn } from '$lib/utils';
 	import { Pencil, Trash2, ArrowLeft } from 'lucide-svelte';
 	import { writable } from 'svelte/store';
-import { selectedPlaylist, selectedChannel } from '$lib/stores';
+	import { selectedPlaylist, selectedChannel } from '$lib/stores';
 	let providers: Playlist[] = [];
 	let error = '';
 	let loading = false;
@@ -111,121 +111,117 @@ import { selectedPlaylist, selectedChannel } from '$lib/stores';
 	function handleBackToProviders() {
 		currentProvider = null;
 		currentChannels = [];
-	}    
+	}
+</script>
 
-   </script>
-    
-   <Sidebar.Root>
-    <Sidebar.Content>
-     <Sidebar.Group>
-      <Sidebar.GroupLabel>Application</Sidebar.GroupLabel>
-      <Sidebar.GroupContent>
-       <Sidebar.Menu>
-        menu stuff<br/>
-        <div
-        class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 transition-all duration-500"
-    >
-        {#if loading}
-            <Card.Root class="w-[380px] backdrop-blur-sm bg-white/90 dark:bg-gray-800/90">
-                <Card.Content class="p-6">
-                    <p class="text-center text-gray-500">Loading...</p>
-                </Card.Content>
-            </Card.Root>
-        {:else if error}
-            <Card.Root class="w-[380px] backdrop-blur-sm bg-white/90 dark:bg-gray-800/90">
-                <Card.Content class="p-6">
-                    <p class="text-red-500 text-center">{error}</p>
-                </Card.Content>
-            </Card.Root>
-        {:else if editingProvider}
-            <PlaylistEditForm
-                provider={editingProvider}
-                on:saved={handleEditSave}
-                on:cancel={handleEditCancel}
-            />
-        {:else if currentProvider && currentChannels.length > 0}
-            <Card.Root class="w-[800px] backdrop-blur-sm bg-white/90 dark:bg-gray-800/90">
-                <Card.Header class="flex items-center space-x-4">
-                    <button
-                        class={cn(buttonVariants({ variant: 'outline', size: 'icon' }))}
-                        on:click={handleBackToProviders}
-                    >
-                        <ArrowLeft class="h-4 w-4" />
-                    </button>
-                    <Card.Title
-                        class="text-3xl font-bold bg-gradient-to-r from-indigo-500 to-pink-500 bg-clip-text text-transparent"
-                    >
-                        {currentProvider.name} Channels
-                    </Card.Title>
-                </Card.Header>
-                <Card.Content class="p-6">
-                    <ChannelList channels={currentChannels} playlist_id={currentProvider.id!} />
-                </Card.Content>
-            </Card.Root>
-        {:else if providers.length > 0}
-            <Card.Root class="w-[380px] backdrop-blur-sm bg-white/90 dark:bg-gray-800/90">
-                <Card.Header class="space-y-2">
-                    <div class="flex items-center justify-between">
-                        <h2 class="text-lg font-semibold tracking-tight">
-                            Blipty Providers
-                        </h2>
-                    </div>
-                </Card.Header>
-                <Card.Content class="p-6 space-y-4">
-                    {#each providers as provider}
-                        <div
-                            class="border rounded-lg p-4 flex items-center justify-between bg-white/50 dark:bg-gray-700/50"
-                        >
-                            <button
-                                class="font-semibold text-lg text-left hover:text-indigo-600 transition-colors duration-200"
-                                on:click={() => handleProviderClick(provider)}
-                                disabled={$loadingProviders.has(provider.id!)}
-                            >
-                                {provider.name}
-                                {#if $loadingProviders.has(provider.id!)}
-                                    <span class="text-sm text-gray-500 ml-2">Loading...</span>
-                                {/if}
-                            </button>
-                            <div class="flex gap-2">
-                                <button
-                                    class={cn(buttonVariants({ variant: 'outline', size: 'icon' }))}
-                                    title="Edit {provider.name}"
-                                    on:click={() => handleEdit(provider)}
-                                >
-                                    <Pencil class="h-4 w-4" />
-                                </button>
-                                <button
-                                    class={cn(buttonVariants({ variant: 'destructive', size: 'icon' }))}
-                                    title="Delete {provider.name}"
-                                    on:click={() => handleDelete(provider)}
-                                >
-                                    <Trash2 class="h-4 w-4" />
-                                </button>
-                            </div>
-                        </div>
-                    {/each}
-    
-                    <button
-                        class={cn(
-                            buttonVariants({ variant: 'default' }),
-                            'w-full bg-gradient-to-r from-indigo-500 to-pink-500 hover:opacity-90 transition-opacity duration-200'
-                        )}
-                        on:click={() => {
-                            console.log('Add clicked');
-                            providers = [];
-                        }}
-                    >
-                        Add Another Provider
-                    </button>
-                </Card.Content>
-            </Card.Root>
-        {:else}
-            <PlaylistForm />
-        {/if}
-    </div>
+<Sidebar.Root>
+	<Sidebar.Content>
+		<Sidebar.Group>
+			<Sidebar.GroupLabel>Application</Sidebar.GroupLabel>
+			<Sidebar.GroupContent>
+				<Sidebar.Menu>
+					menu stuff<br />
+					<div
+						class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 transition-all duration-500"
+					>
+						{#if loading}
+							<Card.Root class="w-[380px] backdrop-blur-sm bg-white/90 dark:bg-gray-800/90">
+								<Card.Content class="p-6">
+									<p class="text-center text-gray-500">Loading...</p>
+								</Card.Content>
+							</Card.Root>
+						{:else if error}
+							<Card.Root class="w-[380px] backdrop-blur-sm bg-white/90 dark:bg-gray-800/90">
+								<Card.Content class="p-6">
+									<p class="text-red-500 text-center">{error}</p>
+								</Card.Content>
+							</Card.Root>
+						{:else if editingProvider}
+							<PlaylistEditForm
+								provider={editingProvider}
+								on:saved={handleEditSave}
+								on:cancel={handleEditCancel}
+							/>
+						{:else if currentProvider && currentChannels.length > 0}
+							<Card.Root class="w-[800px] backdrop-blur-sm bg-white/90 dark:bg-gray-800/90">
+								<Card.Header class="flex items-center space-x-4">
+									<button
+										class={cn(buttonVariants({ variant: 'outline', size: 'icon' }))}
+										onclick={handleBackToProviders}
+									>
+										<ArrowLeft class="h-4 w-4" />
+									</button>
+									<Card.Title
+										class="text-3xl font-bold bg-gradient-to-r from-indigo-500 to-pink-500 bg-clip-text text-transparent"
+									>
+										{currentProvider.name} Channels
+									</Card.Title>
+								</Card.Header>
+								<Card.Content class="p-6">
+									<ChannelList channels={currentChannels} playlist_id={currentProvider.id!} />
+								</Card.Content>
+							</Card.Root>
+						{:else if providers.length > 0}
+							<Card.Root class="w-[380px] backdrop-blur-sm bg-white/90 dark:bg-gray-800/90">
+								<Card.Header class="space-y-2">
+									<div class="flex items-center justify-between">
+										<h2 class="text-lg font-semibold tracking-tight">Blipty Providers</h2>
+									</div>
+								</Card.Header>
+								<Card.Content class="p-6 space-y-4">
+									{#each providers as provider}
+										<div
+											class="border rounded-lg p-4 flex items-center justify-between bg-white/50 dark:bg-gray-700/50"
+										>
+											<button
+												class="font-semibold text-lg text-left hover:text-indigo-600 transition-colors duration-200"
+												onclick={() => handleProviderClick(provider)}
+												disabled={$loadingProviders.has(provider.id!)}
+											>
+												{provider.name}
+												{#if $loadingProviders.has(provider.id!)}
+													<span class="text-sm text-gray-500 ml-2">Loading...</span>
+												{/if}
+											</button>
+											<div class="flex gap-2">
+												<button
+													class={cn(buttonVariants({ variant: 'outline', size: 'icon' }))}
+													title="Edit {provider.name}"
+													onclick={() => handleEdit(provider)}
+												>
+													<Pencil class="h-4 w-4" />
+												</button>
+												<button
+													class={cn(buttonVariants({ variant: 'destructive', size: 'icon' }))}
+													title="Delete {provider.name}"
+													onclick={() => handleDelete(provider)}
+												>
+													<Trash2 class="h-4 w-4" />
+												</button>
+											</div>
+										</div>
+									{/each}
 
+									<button
+										class={cn(
+											buttonVariants({ variant: 'default' }),
+											'w-full bg-gradient-to-r from-indigo-500 to-pink-500 hover:opacity-90 transition-opacity duration-200'
+										)}
+										onclick={() => {
+											console.log('Add clicked');
+											providers = [];
+										}}
+									>
+										Add Another Provider
+									</button>
+								</Card.Content>
+							</Card.Root>
+						{:else}
+							<PlaylistForm />
+						{/if}
+					</div>
 
-        <!--
+					<!--
         {#each items as item (item.title)}
          <Sidebar.MenuItem>
           <Sidebar.MenuButton>
@@ -239,8 +235,8 @@ import { selectedPlaylist, selectedChannel } from '$lib/stores';
          </Sidebar.MenuItem>
         {/each}
         -->
-       </Sidebar.Menu>
-      </Sidebar.GroupContent>
-     </Sidebar.Group>
-    </Sidebar.Content>
-   </Sidebar.Root>
+				</Sidebar.Menu>
+			</Sidebar.GroupContent>
+		</Sidebar.Group>
+	</Sidebar.Content>
+</Sidebar.Root>
