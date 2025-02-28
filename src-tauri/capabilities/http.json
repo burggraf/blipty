@@ -1,0 +1,15 @@
+{
+  "identifier": "http-capability",
+  "description": "Allow HTTP requests to external domains",
+  "windows": ["*"],
+  "permissions": [
+    "core:default"
+  ],
+  "scope": {
+    "allow": [
+      "http://**",
+      "https://**"
+    ],
+    "deny": []
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "identifier": "main",
+  "description": "Main capability for the application",
+  "windows": ["*"],
+  "permissions": [
+    "core:default"
+  ]
+}
