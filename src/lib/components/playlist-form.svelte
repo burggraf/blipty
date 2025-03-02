@@ -8,6 +8,7 @@
 	let serverUrl = $state('');
 	let username = $state('');
 	let password = $state('');
+	let epgUrl = $state('');
 	let loading = $state(false);
 	let error = $state('');
 
@@ -26,6 +27,9 @@
 				server_url: serverUrl,
 				username,
 				password,
+				epg_url: epgUrl || undefined,
+				created_at: new Date().toISOString(),
+				updated_at: new Date().toISOString(),
 				is_active: true
 			});
 
@@ -87,6 +91,17 @@
 					type="password"
 					bind:value={password}
 					placeholder="Enter password"
+					class="w-full"
+				/>
+			</div>
+
+			<div class="space-y-2">
+				<label for="epgUrl" class="text-sm font-medium">EPG URL (Optional)</label>
+				<Input
+					id="epgUrl"
+					type="url"
+					bind:value={epgUrl}
+					placeholder="https://example.com/epg.xml"
 					class="w-full"
 				/>
 			</div>

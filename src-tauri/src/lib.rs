@@ -1,55 +1,18 @@
 mod commands;
-use commands::*;
-use log::error;
-use rusqlite::Connection;
-use std::sync::Mutex;
-use tauri::Manager;
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
-    simple_logger::SimpleLogger::new()
-        .with_level(log::LevelFilter::Error)
-        .init()
-        .unwrap();
-    tauri::Builder::default()
-        .setup(|app| {
-            let app_dir = app
-                .path()
-                .app_data_dir()
-                .expect("Failed to get app data dir");
-            if let Err(e) = std::fs::create_dir_all(&app_dir) {
-                error!("Failed to create app data dir: {}", e);
-                return Err(e.into());
-            }
-            let db_path = app_dir.join("iptv.db");
+use tauri::{AppHandle, Runtime};
 
-            let conn = match Connection::open(&db_path) {
-                Ok(conn) => conn,
-                Err(e) => {
-                    error!("Failed to open database: {}", e);
-                    return Err(e.into());
-                }
-            };
-            if let Err(e) = init_db(&conn) {
-                error!("Failed to initialize database: {}", e);
-                return Err(e.into());
-            }
-            let db = DbConnection(Mutex::new(conn));
+#[cfg(mobile)]
+pub mod mobile;
 
-            app.manage(db);
-            Ok(())
-        })
-        .invoke_handler(tauri::generate_handler![
-            initialize_database,
-            add_playlist,
-            get_playlists,
-            delete_playlist,
-            update_playlist,
-            fetch_channels,
-            set_selected_channel,
-            get_selected_channel,
-            get_categories
-        ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+pub fn setup<R: Runtime>(_app_handle: &AppHandle<R>) -> Result<(), Box<dyn std::error::Error>> {
+
+    #[cfg(feature = "custom-protocol")]
+    app_handle
+        .manager()
+        .register_uri_scheme("protocol", |_, _| {
+            // Resolve to a local resource
+        })?;
+    // Initialize your resource
+    Ok(())
 }

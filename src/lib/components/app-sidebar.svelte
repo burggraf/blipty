@@ -30,7 +30,6 @@
 	onMount(async () => {
 		try {
 			loading = true;
-			await initializeDatabase();
 			providers = await getPlaylists();
 			console.log('Loaded providers:', providers);
 		} catch (e: any) {

@@ -33,7 +33,6 @@
 	async function initializeApp() {
 		try {
 			loading = true;
-			await initializeDatabase();
 			providers = await getPlaylists();
 			console.log('Loaded providers:', providers);
 			if (playlist_id) {
@@ -201,12 +200,16 @@
 	{#if selectedChannelValue && selectedChannelValue.authenticated_stream_url}
 		<div class="flex flex-col w-full h-full">
 			<div class="flex-1 min-w-0 min-h-0">
-				<VideoPlayer 
-					src={selectedChannelValue.authenticated_stream_url} 
-					channelName={selectedChannelValue.name} 
+				<VideoPlayer
+					src={selectedChannelValue.authenticated_stream_url}
+					channelName={selectedChannelValue.name}
 				/>
 			</div>
 			<div class="p-2 text-lg font-semibold">{selectedChannelValue.name}</div>
+		</div>
+	{:else}
+		<div class="flex items-center justify-center h-full">
+			<p class="text-gray-500">No channel selected.</p>
 		</div>
 	{/if}
 </main>

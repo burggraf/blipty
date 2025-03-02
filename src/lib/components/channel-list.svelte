@@ -67,7 +67,11 @@
 
 	async function loadSelectedChannel() {
 		try {
-			selectedChannel = await getSelectedChannel(playlist_id);
+			const channel = await getSelectedChannel(playlist_id);
+			if (channel) {
+				selectedChannel = channel;
+				selectedChannelStore.set(channel);
+			}
 		} catch (error) {
 			console.error('Error loading selected channel:', error);
 		}

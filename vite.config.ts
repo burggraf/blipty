@@ -11,9 +11,5 @@ export default defineConfig({
 	optimizeDeps: {
 		include: ['@tauri-apps/api']
 	},
-	resolve: {
-		alias: {
-			'@tauri-apps/api': '@tauri-apps/api'
-		}
-	}
+
 });
