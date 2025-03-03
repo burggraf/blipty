@@ -3,7 +3,6 @@ use serde_json::Value;
 use std::collections::HashMap;
 use tauri::{AppHandle, Runtime, State};
 
-use crate::channel_commands::extract_categories::extract_categories;
 use crate::channel_commands::extract_channels::extract_channels;
 use crate::channel_commands::fetch_api::fetch_api_data;
 use crate::channel_commands::insert_categories::insert_categories;
@@ -50,25 +49,12 @@ pub async fn fetch_and_populate_data<R: Runtime>(
 
     insert_categories(db.clone(), &all_categories)?;
 
-    // Extract live channels
-    let live_channels = extract_channels(&api_data);
+    // Extract  channels
+    let all_channels = extract_channels(&api_data);
 
     insert_channels(
         db.clone(),
-        &live_channels,
-        &all_categories,
-        &server_url,
-        &username,
-        &password,
-        playlist_id,
-    )?;
-
-    // Extract vod channels
-    let vod_channels = extract_channels(&api_data);
-
-    insert_channels(
-        db.clone(),
-        &vod_channels,
+        &all_channels,
         &all_categories,
         &server_url,
         &username,

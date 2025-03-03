@@ -2,7 +2,7 @@ use reqwest;
 use serde_json::Value;
 use std::collections::HashMap;
 
-use crate::channel_commands::extract_categories::extract_categories;
+use crate::channel_commands::extract_channels::extract_channels;
 use crate::models::Error;
 
 pub async fn fetch_api_data(
@@ -14,8 +14,9 @@ pub async fn fetch_api_data(
     let client = reqwest::Client::new();
     let mut live_categories: HashMap<String, String> = HashMap::new();
     let mut vod_categories: HashMap<String, String> = HashMap::new();
+    let mut all_channels: Vec<Value> = Vec::new();
 
-    // Fetch categories
+    // Fetch live categories
     let live_categories_endpoint = format!(
         "{}/player_api.php?username={}&password={}&action=get_live_categories",
         server_url, username, password
@@ -162,24 +163,9 @@ pub async fn fetch_api_data(
                     Ok(data) => {
                         println!("Successfully parsed live streams JSON data");
 
-                        // Print the top-level structure of the JSON
-                        if let Some(obj) = data.as_object() {
-                            println!("JSON structure has the following top-level keys:");
-                            for (key, value) in obj {
-                                let type_str = match value {
-                                    Value::Null => "null",
-                                    Value::Bool(_) => "boolean",
-                                    Value::Number(_) => "number",
-                                    Value::String(_) => "string",
-                                    Value::Array(_) => "array",
-                                    Value::Object(_) => "object",
-                                };
-                                println!("  - {}: {}", key, type_str);
-                            }
-                        } else {
-                            println!("JSON data is not an object, it's a: {:?}", data);
-                        }
-                        api_data = data;
+                        // Extract live channels
+                        let live_channels = extract_channels(&data);
+                        all_channels.extend(live_channels);
                     }
                     Err(e) => {
                         println!("Failed to parse JSON from {}: {}", live_streams_endpoint, e);
@@ -222,24 +208,9 @@ pub async fn fetch_api_data(
                     Ok(data) => {
                         println!("Successfully parsed vod streams JSON data");
 
-                        // Print the top-level structure of the JSON
-                        if let Some(obj) = data.as_object() {
-                            println!("JSON structure has the following top-level keys:");
-                            for (key, value) in obj {
-                                let type_str = match value {
-                                    Value::Null => "null",
-                                    Value::Bool(_) => "boolean",
-                                    Value::Number(_) => "number",
-                                    Value::String(_) => "string",
-                                    Value::Array(_) => "array",
-                                    Value::Object(_) => "object",
-                                };
-                                println!("  - {}: {}", key, type_str);
-                            }
-                        } else {
-                            println!("JSON data is not an object, it's a: {:?}", data);
-                        }
-                        api_data = data;
+                        // Extract vod channels
+                        let vod_channels = extract_channels(&data);
+                        all_channels.extend(vod_channels);
                     }
                     Err(e) => {
                         println!("Failed to parse JSON from {}: {}", vod_streams_endpoint, e);
@@ -260,6 +231,8 @@ pub async fn fetch_api_data(
             );
         }
     }
+
+    api_data = Value::Array(all_channels);
 
     // Combine live and VOD categories
     let mut all_categories: HashMap<String, String> = HashMap::new();
