@@ -164,7 +164,7 @@ pub async fn fetch_api_data(
                         println!("Successfully parsed live streams JSON data");
 
                         // Extract live channels
-                        let live_channels = extract_channels(&data);
+                        let live_channels = extract_channels(&data, "live".to_string());
                         all_channels.extend(live_channels);
                     }
                     Err(e) => {
@@ -209,7 +209,7 @@ pub async fn fetch_api_data(
                         println!("Successfully parsed vod streams JSON data");
 
                         // Extract vod channels
-                        let vod_channels = extract_channels(&data);
+                        let vod_channels = extract_channels(&data, "movie".to_string());
                         all_channels.extend(vod_channels);
                     }
                     Err(e) => {

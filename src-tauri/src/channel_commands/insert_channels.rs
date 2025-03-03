@@ -13,6 +13,7 @@ pub fn insert_channels(
     username: &String,
     password: &String,
     playlist_id: i64,
+    stream_type: &String,
 ) -> Result<(), Error> {
     let mut conn = db.0.lock().unwrap();
     let tx = conn.transaction()?;
@@ -39,8 +40,6 @@ pub fn insert_channels(
             .as_str()
             .or(channel["title"].as_str())
             .unwrap_or("Unknown Channel");
-
-        let stream_type = channel["stream_type"].as_str().unwrap_or("live");
 
         // Get category ID as a String to avoid lifetime issues
         let category_id_string: Option<String> = if let Some(id) = channel["category_id"].as_str() {
@@ -94,29 +93,23 @@ pub fn insert_channels(
         // Insert into streams table
         let result = if let Some(cat_id) = category_id_for_stream {
             // Insert into streams table with category ID
-            let sql = "INSERT INTO streams (stream_id, name, stream_type, category_id, added) VALUES (?1, ?2, ?3, ?4, strftime('%s', 'now'))";
+            let sql = "INSERT OR IGNORE INTO streams (stream_id, name, stream_type, category_id, added) VALUES (?1, ?2, ?3, ?4, strftime('%s', 'now'))";
             println!("Executing SQL: {}", sql);
             println!(
                 "Params: stream_id={}, name={}, stream_type={}, cat_id={}",
                 stream_id, name, stream_type, cat_id
             );
-            tx.execute(sql, params![stream_id, name, stream_type, cat_id])
+            tx.execute(sql, params![stream_id, name, stream_type, cat_id])?
         } else {
             // Insert into streams table without category ID
-            let sql = "INSERT INTO streams (stream_id, name, stream_type, added) VALUES (?1, ?2, ?3, strftime('%s', 'now'))";
+            let sql = "INSERT OR IGNORE INTO streams (stream_id, name, stream_type, added) VALUES (?1, ?2, ?3, strftime('%s', 'now'))";
             println!("Executing SQL: {}", sql);
             println!(
                 "Params: stream_id={}, name={}, stream_type={}",
                 stream_id, name, stream_type
             );
-            tx.execute(sql, params![stream_id, name, stream_type])
+            tx.execute(sql, params![stream_id, name, stream_type])?
         };
-        match result {
-            Ok(_) => {}
-            Err(e) => {
-                println!("Error inserting stream: {}", e);
-            }
-        }
 
         // Also insert into channels table
         // Get stream_url from the JSON if available, otherwise construct it
@@ -132,18 +125,13 @@ pub fn insert_channels(
             });
 
         let now = chrono::Utc::now().to_rfc3339();
-        let result = tx.execute(
-            "INSERT INTO channels (playlist_id, category_id, category_name, stream_id, name, stream_type, stream_url, created_at) 
+        if channel["stream_type"].as_str().unwrap_or("") == stream_type {
+            let result = tx.execute(
+                "INSERT INTO channels (playlist_id, category_id, category_name, stream_id, name, stream_type, stream_url, created_at)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-            params![playlist_id, category_id, category_name, stream_id, name, stream_type, stream_url, now],
-        );
-        match result {
-            Ok(_) => {
-                println!("Successfully inserted channel: {}", name);
-            }
-            Err(e) => {
-                println!("Error inserting channel: {}", e);
-            }
+                params![playlist_id, category_id, category_name, stream_id, name, stream_type, stream_url, now],
+            )?;
+            println!("Successfully inserted channel: {}", name);
         }
     }
 

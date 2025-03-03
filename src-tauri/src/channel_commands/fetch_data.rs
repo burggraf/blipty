@@ -50,7 +50,7 @@ pub async fn fetch_and_populate_data<R: Runtime>(
     insert_categories(db.clone(), &all_categories)?;
 
     // Extract  channels
-    let all_channels = extract_channels(&api_data);
+    let all_channels = extract_channels(&api_data, "live".to_string());
 
     insert_channels(
         db.clone(),
@@ -60,6 +60,21 @@ pub async fn fetch_and_populate_data<R: Runtime>(
         &username,
         &password,
         playlist_id,
+        &"live".to_string(),
+    )?;
+
+    // Extract vod channels
+    let vod_channels = extract_channels(&api_data, "vod".to_string());
+
+    insert_channels(
+        db.clone(),
+        &vod_channels,
+        &all_categories,
+        &server_url,
+        &username,
+        &password,
+        playlist_id,
+        &"vod".to_string(),
     )?;
 
     println!("Successfully fetched and populated data");
