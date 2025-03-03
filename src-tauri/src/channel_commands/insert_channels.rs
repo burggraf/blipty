@@ -56,16 +56,61 @@ pub fn insert_channels(
 
         println!("Processing channel: {} (ID: {})", name, stream_id);
 
-        let category_name = category_id
-            .and_then(|id| all_categories.get(id))
-            .map(|(name, _, _)| name.clone())
-            .unwrap_or_else(|| "Uncategorized".to_string());
+        let mut category_id_for_stream: Option<i64> = None;
+        let category_name = match category_id {
+            Some(id) => {
+                println!("Looking for category ID: {}", id);
+                match all_categories.get(id) {
+                    Some((name, _, _)) => {
+                        println!("Found category name: {}", name);
+                        // Get the internal category ID from the categories table
+                        let mut stmt =
+                            tx.prepare("SELECT id FROM categories WHERE category_id = ?1")?;
+                        let mut rows = stmt.query(params![id])?;
+
+                        if let Some(row) = rows.next()? {
+                            let internal_category_id: i64 = row.get(0)?;
+                            category_id_for_stream = Some(internal_category_id);
+                        } else {
+                            println!("Internal category ID not found for category_id: {}", id);
+                            category_id_for_stream = None;
+                        }
+                        name.clone()
+                    }
+                    None => {
+                        println!("Category ID not found: {}", id);
+                        category_id_for_stream = None;
+                        "Uncategorized".to_string()
+                    }
+                }
+            }
+            None => {
+                println!("Category ID is None");
+                category_id_for_stream = None;
+                "Uncategorized".to_string()
+            }
+        };
 
         // Insert into streams table
-        let result = tx.execute(
-            "INSERT INTO streams (stream_id, name, stream_type, category_id, added) VALUES (?1, ?2, ?3, ?4, strftime('%s', 'now'))",
-            params![stream_id, name, stream_type, category_id],
-        );
+        let result = if let Some(cat_id) = category_id_for_stream {
+            // Insert into streams table with category ID
+            let sql = "INSERT INTO streams (stream_id, name, stream_type, category_id, added) VALUES (?1, ?2, ?3, ?4, strftime('%s', 'now'))";
+            println!("Executing SQL: {}", sql);
+            println!(
+                "Params: stream_id={}, name={}, stream_type={}, cat_id={}",
+                stream_id, name, stream_type, cat_id
+            );
+            tx.execute(sql, params![stream_id, name, stream_type, cat_id])
+        } else {
+            // Insert into streams table without category ID
+            let sql = "INSERT INTO streams (stream_id, name, stream_type, added) VALUES (?1, ?2, ?3, strftime('%s', 'now'))";
+            println!("Executing SQL: {}", sql);
+            println!(
+                "Params: stream_id={}, name={}, stream_type={}",
+                stream_id, name, stream_type
+            );
+            tx.execute(sql, params![stream_id, name, stream_type])
+        };
         match result {
             Ok(_) => {}
             Err(e) => {
