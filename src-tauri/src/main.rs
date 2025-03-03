@@ -35,6 +35,7 @@ fn main() {
             // Check and create the channels table if it doesn't exist
             db::check_and_create_channels_table(&conn)
                 .expect("Failed to check/create channels table");
+            db::migrate_db_v1(&conn).expect("Failed to migrate database");
             app.manage(db::DbConnection(Mutex::new(conn))); // Add the connection to the managed state
 
             Ok(())
