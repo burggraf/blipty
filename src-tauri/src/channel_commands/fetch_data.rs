@@ -1,22 +1,14 @@
 use rusqlite::params;
+use serde_json::Value;
+use std::collections::HashMap;
 use tauri::{AppHandle, Runtime, State};
-
-use crate::{db::DbConnection, models::Error};
-
-// mod fetch_api;
-// mod extract_categories;
-// mod extract_channels;
-// mod insert_categories;
-// mod insert_channels;
 
 use crate::channel_commands::extract_categories::extract_categories;
 use crate::channel_commands::extract_channels::extract_channels;
 use crate::channel_commands::fetch_api::fetch_api_data;
 use crate::channel_commands::insert_categories::insert_categories;
 use crate::channel_commands::insert_channels::insert_channels;
-
-use serde_json::Value;
-use std::collections::HashMap;
+use crate::{db::DbConnection, models::Error};
 
 #[tauri::command(rename_all = "camelCase")]
 pub async fn fetch_and_populate_data<R: Runtime>(
@@ -58,11 +50,25 @@ pub async fn fetch_and_populate_data<R: Runtime>(
 
     insert_categories(db.clone(), &all_categories)?;
 
-    let all_channels = extract_channels(&api_data);
+    // Extract live channels
+    let live_channels = extract_channels(&api_data);
 
     insert_channels(
         db.clone(),
-        &all_channels,
+        &live_channels,
+        &all_categories,
+        &server_url,
+        &username,
+        &password,
+        playlist_id,
+    )?;
+
+    // Extract vod channels
+    let vod_channels = extract_channels(&api_data);
+
+    insert_channels(
+        db.clone(),
+        &vod_channels,
         &all_categories,
         &server_url,
         &username,

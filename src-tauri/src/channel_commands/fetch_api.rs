@@ -268,11 +268,3 @@ pub async fn fetch_api_data(
 
     Ok((api_data, all_categories))
 }
-
-    // Combine live and VOD categories
-    let mut all_categories: HashMap<String, String> = HashMap::new();
-    all_categories.extend(live_categories);
-    all_categories.extend(vod_categories);
-
-    Ok((api_data, all_categories))
-}

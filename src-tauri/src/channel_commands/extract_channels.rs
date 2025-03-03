@@ -1,5 +1,5 @@
 use serde_json::Value;
-use std::collections::HashMap;
+// use std::collections::HashMap;
 
 pub fn extract_channels(api_data: &Value) -> Vec<Value> {
     let mut all_channels = Vec::new();
@@ -16,17 +16,16 @@ pub fn extract_channels(api_data: &Value) -> Vec<Value> {
         }
     }
     // Structure 2: player_api.php format with direct array
-    else if api_data.is_array() {
+    else if let Some(channels) = api_data.as_array() {
         println!("Found player_api.php style array structure for channels");
-        if let Some(channels) = api_data.as_array() {
-            for channel in channels {
-                if channel.is_object() {
-                    all_channels.push(channel.clone());
-                }
+        for channel in channels {
+            if channel.is_object() {
+                all_channels.push(channel.clone());
             }
         }
     }
 
     println!("Extracted {} channels", all_channels.len());
+
     all_channels
 }
