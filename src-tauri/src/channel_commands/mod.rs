@@ -3,7 +3,12 @@ use tauri::State;
 pub mod category_commands;
 pub mod import_commands;
 
+mod extract_categories;
+mod extract_channels;
+mod fetch_api;
 mod fetch_data;
+mod insert_categories;
+mod insert_channels;
 mod process_m3u;
 
 use crate::{db::DbConnection, models::Channel, models::Error};
