@@ -130,6 +130,7 @@ pub fn create_channels_table(conn: &Connection) -> SqliteResult<()> {
             created_at TEXT NOT NULL,
             is_selected INTEGER DEFAULT 0,
             FOREIGN KEY(playlist_id) REFERENCES playlists(id) ON DELETE CASCADE
+            FOREIGN KEY(playlist_id) REFERENCES playlists(id) ON DELETE CASCADE
         )";
 
         match conn.execute(create_channels_table, []) {
@@ -139,6 +140,16 @@ pub fn create_channels_table(conn: &Connection) -> SqliteResult<()> {
                 return Err(e);
             }
         };
+
+        // Add unique index if it doesn't exist
+        let create_unique_index = "CREATE UNIQUE INDEX IF NOT EXISTS idx_channels_playlist_stream ON channels (playlist_id, stream_id)";
+        match conn.execute(create_unique_index, []) {
+            Ok(_) => println!("Unique index on playlist_id and stream_id created successfully"),
+            Err(e) => {
+                println!("Error creating unique index: {}", e);
+                return Err(e);
+            }
+        }
     } else {
         println!("Channels table already exists");
     }

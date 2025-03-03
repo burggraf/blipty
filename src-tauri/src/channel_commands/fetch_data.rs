@@ -18,7 +18,7 @@ pub async fn fetch_and_populate_data<R: Runtime>(
     username: String,
     password: String,
 ) -> Result<(), Error> {
-    let (api_data, categories) =
+    let (api_data, live_categories, vod_categories) =
         fetch_api_data(server_url.clone(), username.clone(), password.clone()).await?;
 
     // For M3U format, handle differently
@@ -37,15 +37,30 @@ pub async fn fetch_and_populate_data<R: Runtime>(
         .await?;
         return Ok(());
     }
-
-    // Convert the HashMap<String, String> to a HashMap<String, (String, String, Option<i64>)>
-    let mut all_categories: HashMap<String, (String, String, Option<i64>)> = HashMap::new();
-    for (category_id, category_name) in categories {
-        all_categories.insert(
+    // Prepare live categories for insertion
+    let mut live_categories_with_type: HashMap<String, (String, String, Option<i64>)> =
+        HashMap::new();
+    for (category_id, category_name) in live_categories {
+        live_categories_with_type.insert(
             category_id.clone(),
             (category_name, "live".to_string(), None),
         );
     }
+
+    // Prepare VOD categories for insertion
+    let mut vod_categories_with_type: HashMap<String, (String, String, Option<i64>)> =
+        HashMap::new();
+    for (category_id, category_name) in vod_categories {
+        vod_categories_with_type.insert(
+            category_id.clone(),
+            (category_name, "vod".to_string(), None),
+        );
+    }
+
+    // Combine categories
+    let mut all_categories: HashMap<String, (String, String, Option<i64>)> = HashMap::new();
+    all_categories.extend(live_categories_with_type);
+    all_categories.extend(vod_categories_with_type);
 
     insert_categories(db.clone(), &all_categories)?;
 

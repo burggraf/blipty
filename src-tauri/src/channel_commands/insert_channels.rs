@@ -13,7 +13,7 @@ pub fn insert_channels(
     username: &String,
     password: &String,
     playlist_id: i64,
-    stream_type: &String,
+    _stream_type: &String, // Remove the unused parameter
 ) -> Result<(), Error> {
     let mut conn = db.0.lock().unwrap();
     let tx = conn.transaction()?;
@@ -90,6 +90,9 @@ pub fn insert_channels(
             }
         };
 
+        // Get stream_type from the channel data
+        let stream_type = channel["stream_type"].as_str().unwrap_or("unknown");
+
         // Insert into streams table
         let result = if let Some(cat_id) = category_id_for_stream {
             // Insert into streams table with category ID
@@ -125,23 +128,15 @@ pub fn insert_channels(
             });
 
         let now = chrono::Utc::now().to_rfc3339();
-        if channel["stream_type"].as_str().unwrap_or("") == stream_type {
-            let result = tx.execute(
-                "INSERT INTO channels (playlist_id, category_id, category_name, stream_id, name, stream_type, stream_url, created_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-                params![playlist_id, category_id, category_name, stream_id, name, stream_type, stream_url, now],
-            )?;
-            println!("Successfully inserted channel: {}", name);
-        }
+        let result = tx.execute(
+            "INSERT INTO channels (playlist_id, category_id, category_name, stream_id, name, stream_type, stream_url, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            params![playlist_id, category_id, category_name, stream_id, name, stream_type, stream_url, now],
+        )?;
+        println!("Successfully inserted channel: {}", name);
     }
 
-    // Skip VOD processing for now since we're focused on live channels
-    println!("Skipping VOD processing for now");
-
     // Commit the transaction to save the channels
-    // let channel_count = all_channels.len();
-    // println!("Committing transaction to save {} channels", channel_count);
     tx.commit()?;
-    // println!("Transaction committed successfully");
     Ok(())
 }

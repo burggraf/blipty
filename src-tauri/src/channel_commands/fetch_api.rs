@@ -9,7 +9,7 @@ pub async fn fetch_api_data(
     server_url: String,
     username: String,
     password: String,
-) -> Result<(Value, HashMap<String, String>), Error> {
+) -> Result<(Value, HashMap<String, String>, HashMap<String, String>), Error> {
     let mut api_data = Value::Null;
     let client = reqwest::Client::new();
     let mut live_categories: HashMap<String, String> = HashMap::new();
@@ -209,7 +209,7 @@ pub async fn fetch_api_data(
                         println!("Successfully parsed vod streams JSON data");
 
                         // Extract vod channels
-                        let vod_channels = extract_channels(&data, "movie".to_string());
+                        let vod_channels = extract_channels(&data, "vod".to_string());
                         all_channels.extend(vod_channels);
                     }
                     Err(e) => {
@@ -234,10 +234,6 @@ pub async fn fetch_api_data(
 
     api_data = Value::Array(all_channels);
 
-    // Combine live and VOD categories
-    let mut all_categories: HashMap<String, String> = HashMap::new();
-    all_categories.extend(live_categories);
-    all_categories.extend(vod_categories);
-
-    Ok((api_data, all_categories))
+    // Return separate live and VOD categories
+    Ok((api_data, live_categories, vod_categories))
 }
