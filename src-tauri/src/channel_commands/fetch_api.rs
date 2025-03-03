@@ -9,11 +9,20 @@ pub async fn fetch_api_data(
     server_url: String,
     username: String,
     password: String,
-) -> Result<(Value, HashMap<String, String>, HashMap<String, String>), Error> {
+) -> Result<
+    (
+        Value,
+        HashMap<String, String>,
+        HashMap<String, String>,
+        HashMap<String, String>,
+    ),
+    Error,
+> {
     let mut api_data = Value::Null;
     let client = reqwest::Client::new();
     let mut live_categories: HashMap<String, String> = HashMap::new();
     let mut vod_categories: HashMap<String, String> = HashMap::new();
+    let mut series_categories: HashMap<String, String> = HashMap::new();
     let mut all_channels: Vec<Value> = Vec::new();
 
     // Fetch live categories
@@ -142,6 +151,69 @@ pub async fn fetch_api_data(
         }
     }
 
+    // Fetch series categories
+    let series_categories_endpoint = format!(
+        "{}/player_api.php?username={}&password={}&action=get_series_categories",
+        server_url, username, password
+    );
+
+    println!(
+        "Trying series categories endpoint: {}",
+        series_categories_endpoint
+    );
+
+    match client.get(&series_categories_endpoint).send().await {
+        Ok(response) => {
+            if response.status().is_success() {
+                println!(
+                    "Successfully connected to series categories endpoint: {}",
+                    series_categories_endpoint
+                );
+
+                match response.json::<Value>().await {
+                    Ok(data) => {
+                        println!("Successfully parsed series categories JSON data");
+
+                        if let Some(categories_array) = data.as_array() {
+                            for category in categories_array {
+                                if let Some(category_id) =
+                                    category.get("category_id").and_then(|v| v.as_str())
+                                {
+                                    if let Some(category_name) =
+                                        category.get("category_name").and_then(|v| v.as_str())
+                                    {
+                                        series_categories.insert(
+                                            category_id.to_string(),
+                                            category_name.to_string(),
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        println!(
+                            "Failed to parse series categories JSON from {}: {}",
+                            series_categories_endpoint, e
+                        );
+                    }
+                }
+            } else {
+                println!(
+                    "Failed to connect to series categories endpoint {}: {}",
+                    series_categories_endpoint,
+                    response.status()
+                );
+            }
+        }
+        Err(e) => {
+            println!(
+                "Error connecting to series categories endpoint {}: {}",
+                series_categories_endpoint, e
+            );
+        }
+    }
+
     // Fetch live streams
     let live_streams_endpoint = format!(
         "{}/player_api.php?username={}&password={}&action=get_live_streams",
@@ -158,12 +230,10 @@ pub async fn fetch_api_data(
                     live_streams_endpoint
                 );
 
-                // For JSON API formats
                 match response.json::<Value>().await {
                     Ok(data) => {
                         println!("Successfully parsed live streams JSON data");
 
-                        // Extract live channels
                         let live_channels = extract_channels(&data, "live".to_string());
                         all_channels.extend(live_channels);
                     }
@@ -187,28 +257,26 @@ pub async fn fetch_api_data(
         }
     }
 
-    // Fetch vod streams
+    // Fetch VOD streams
     let vod_streams_endpoint = format!(
         "{}/player_api.php?username={}&password={}&action=get_vod_streams",
         server_url, username, password
     );
 
-    println!("Trying vod streams endpoint: {}", vod_streams_endpoint);
+    println!("Trying VOD streams endpoint: {}", vod_streams_endpoint);
 
     match client.get(&vod_streams_endpoint).send().await {
         Ok(response) => {
             if response.status().is_success() {
                 println!(
-                    "Successfully connected to vod streams endpoint: {}",
+                    "Successfully connected to VOD streams endpoint: {}",
                     vod_streams_endpoint
                 );
 
-                // For JSON API formats
                 match response.json::<Value>().await {
                     Ok(data) => {
-                        println!("Successfully parsed vod streams JSON data");
+                        println!("Successfully parsed VOD streams JSON data");
 
-                        // Extract vod channels
                         let vod_channels = extract_channels(&data, "vod".to_string());
                         all_channels.extend(vod_channels);
                     }
@@ -218,7 +286,7 @@ pub async fn fetch_api_data(
                 }
             } else {
                 println!(
-                    "Failed to connect to vod streams endpoint {}: {}",
+                    "Failed to connect to VOD streams endpoint {}: {}",
                     vod_streams_endpoint,
                     response.status()
                 );
@@ -226,14 +294,62 @@ pub async fn fetch_api_data(
         }
         Err(e) => {
             println!(
-                "Error connecting to vod streams endpoint {}: {}",
+                "Error connecting to VOD streams endpoint {}: {}",
                 vod_streams_endpoint, e
+            );
+        }
+    }
+
+    // Fetch series streams
+    let series_streams_endpoint = format!(
+        "{}/player_api.php?username={}&password={}&action=get_series",
+        server_url, username, password
+    );
+
+    println!(
+        "Trying series streams endpoint: {}",
+        series_streams_endpoint
+    );
+
+    match client.get(&series_streams_endpoint).send().await {
+        Ok(response) => {
+            if response.status().is_success() {
+                println!(
+                    "Successfully connected to series streams endpoint: {}",
+                    series_streams_endpoint
+                );
+
+                match response.json::<Value>().await {
+                    Ok(data) => {
+                        println!("Successfully parsed series streams JSON data");
+
+                        let series_channels = extract_channels(&data, "series".to_string());
+                        all_channels.extend(series_channels);
+                    }
+                    Err(e) => {
+                        println!(
+                            "Failed to parse JSON from {}: {}",
+                            series_streams_endpoint, e
+                        );
+                    }
+                }
+            } else {
+                println!(
+                    "Failed to connect to series streams endpoint {}: {}",
+                    series_streams_endpoint,
+                    response.status()
+                );
+            }
+        }
+        Err(e) => {
+            println!(
+                "Error connecting to series streams endpoint {}: {}",
+                series_streams_endpoint, e
             );
         }
     }
 
     api_data = Value::Array(all_channels);
 
-    // Return separate live and VOD categories
-    Ok((api_data, live_categories, vod_categories))
+    Ok((api_data, live_categories, vod_categories, series_categories))
 }

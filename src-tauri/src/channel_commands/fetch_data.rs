@@ -18,7 +18,7 @@ pub async fn fetch_and_populate_data<R: Runtime>(
     username: String,
     password: String,
 ) -> Result<(), Error> {
-    let (api_data, live_categories, vod_categories) =
+    let (api_data, live_categories, vod_categories, series_categories) =
         fetch_api_data(server_url.clone(), username.clone(), password.clone()).await?;
 
     // For M3U format, handle differently
@@ -57,14 +57,25 @@ pub async fn fetch_and_populate_data<R: Runtime>(
         );
     }
 
+    // Prepare series categories for insertion
+    let mut series_categories_with_type: HashMap<String, (String, String, Option<i64>)> =
+        HashMap::new();
+    for (category_id, category_name) in series_categories {
+        series_categories_with_type.insert(
+            category_id.clone(),
+            (category_name, "series".to_string(), None),
+        );
+    }
+
     // Combine categories
     let mut all_categories: HashMap<String, (String, String, Option<i64>)> = HashMap::new();
     all_categories.extend(live_categories_with_type);
     all_categories.extend(vod_categories_with_type);
+    all_categories.extend(series_categories_with_type);
 
     insert_categories(db.clone(), &all_categories)?;
 
-    // Extract  channels
+    // Extract live channels
     let all_channels = extract_channels(&api_data, "live".to_string());
 
     insert_channels(
@@ -90,6 +101,20 @@ pub async fn fetch_and_populate_data<R: Runtime>(
         &password,
         playlist_id,
         &"vod".to_string(),
+    )?;
+
+    // Extract series channels
+    let series_channels = extract_channels(&api_data, "series".to_string());
+
+    insert_channels(
+        db.clone(),
+        &series_channels,
+        &all_categories,
+        &server_url,
+        &username,
+        &password,
+        playlist_id,
+        &"series".to_string(),
     )?;
 
     println!("Successfully fetched and populated data");
