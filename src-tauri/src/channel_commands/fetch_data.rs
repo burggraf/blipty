@@ -16,6 +16,7 @@ use crate::channel_commands::insert_categories::insert_categories;
 use crate::channel_commands::insert_channels::insert_channels;
 
 use serde_json::Value;
+use std::collections::HashMap;
 
 #[tauri::command(rename_all = "camelCase")]
 pub async fn fetch_and_populate_data<R: Runtime>(
@@ -26,7 +27,8 @@ pub async fn fetch_and_populate_data<R: Runtime>(
     username: String,
     password: String,
 ) -> Result<(), Error> {
-    let api_data = fetch_api_data(server_url.clone(), username.clone(), password.clone()).await?;
+    let (api_data, categories) =
+        fetch_api_data(server_url.clone(), username.clone(), password.clone()).await?;
 
     // For M3U format, handle differently
     if let Value::String(m3u_content) = &api_data {
@@ -45,7 +47,14 @@ pub async fn fetch_and_populate_data<R: Runtime>(
         return Ok(());
     }
 
-    let all_categories = extract_categories(&api_data);
+    // Convert the HashMap<String, String> to a HashMap<String, (String, String, Option<i64>)>
+    let mut all_categories: HashMap<String, (String, String, Option<i64>)> = HashMap::new();
+    for (category_id, category_name) in categories {
+        all_categories.insert(
+            category_id.clone(),
+            (category_name, "live".to_string(), None),
+        );
+    }
 
     insert_categories(db.clone(), &all_categories)?;
 

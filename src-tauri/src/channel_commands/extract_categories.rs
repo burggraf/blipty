@@ -1,72 +1,31 @@
 use serde_json::Value;
-use std::collections::HashMap;
+use std::collections::HashSet;
 
-pub fn extract_categories(api_data: &Value) -> HashMap<String, (String, String, Option<i64>)> {
-    let mut all_categories = HashMap::new();
+pub fn extract_categories(data: &Value) -> Vec<(String, String)> {
+    let mut categories: HashSet<(String, String)> = HashSet::new();
 
-    // Try different JSON structures for categories
-    println!("Attempting to extract categories from JSON data...");
+    if let Some(streams) = data.as_array() {
+        for stream in streams {
+            if let Some(category_id) = stream.get("category_id") {
+                if let Some(category_id_str) = category_id.as_str() {
+                    // Extract the category name from the stream object (if available)
+                    let category_name = stream
+                        .get("name")
+                        .and_then(|name| name.as_str())
+                        .unwrap_or("Unknown Category")
+                        .to_string();
 
-    // Structure 1: panel_api.php format with nested categories
-    if api_data["categories"].is_object() {
-        println!("Found panel_api.php style categories structure");
-        if let Some(live_categories) = api_data["categories"]["live"].as_array() {
-            for cat in live_categories {
-                if let (Some(cat_id), Some(cat_name)) =
-                    (cat["category_id"].as_str(), cat["category_name"].as_str())
-                {
-                    let parent_id = cat["parent_id"].as_i64();
-                    all_categories.insert(
-                        cat_id.to_string(),
-                        (cat_name.to_string(), "live".to_string(), parent_id),
-                    );
-                }
-            }
-        }
-        if let Some(movie_categories) = api_data["categories"]["movie"].as_array() {
-            for cat in movie_categories {
-                if let (Some(cat_id), Some(cat_name)) =
-                    (cat["category_id"].as_str(), cat["category_name"].as_str())
-                {
-                    let parent_id = cat["parent_id"].as_i64();
-                    all_categories.insert(
-                        cat_id.to_string(),
-                        (cat_name.to_string(), "movie".to_string(), parent_id),
-                    );
-                }
-            }
-        }
-        if let Some(series_categories) = api_data["categories"]["series"].as_array() {
-            for cat in series_categories {
-                if let (Some(cat_id), Some(cat_name)) =
-                    (cat["category_id"].as_str(), cat["category_name"].as_str())
-                {
-                    let parent_id = cat["parent_id"].as_i64();
-                    all_categories.insert(
-                        cat_id.to_string(),
-                        (cat_name.to_string(), "series".to_string(), parent_id),
-                    );
-                }
-            }
-        }
-    }
-    // Structure 2: player_api.php format with direct array
-    else if api_data.is_array() {
-        println!("Found player_api.php style array structure");
-        if let Some(categories) = api_data.as_array() {
-            for cat in categories {
-                if let (Some(cat_id), Some(cat_name)) =
-                    (cat["category_id"].as_str(), cat["category_name"].as_str())
-                {
-                    all_categories.insert(
-                        cat_id.to_string(),
-                        (cat_name.to_string(), "live".to_string(), None),
-                    );
+                    categories.insert((category_id_str.to_string(), category_name));
                 }
             }
         }
     }
 
-    println!("Extracted {} categories", all_categories.len());
-    all_categories
+    // Convert the HashSet to a Vec
+    let mut category_vec: Vec<(String, String)> = categories.into_iter().collect();
+
+    // Sort the category vector by category ID
+    category_vec.sort_by(|a, b| a.0.cmp(&b.0));
+
+    category_vec
 }

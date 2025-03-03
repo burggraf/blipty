@@ -7,7 +7,7 @@ pub mod playlist_commands;
 use tauri::{AppHandle, Runtime};
 
 #[cfg(mobile)]
-pub mod mobile;
+// pub mod mobile;
 
 pub fn setup<R: Runtime>(_app_handle: &AppHandle<R>) -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(feature = "custom-protocol")]
