@@ -48,9 +48,9 @@ fn main() {
             channel_commands::fetch_channels,
             channel_commands::get_selected_channel,
             channel_commands::set_selected_channel,
-            channel_commands::get_categories,
-            channel_commands::fetch_and_populate_data,
-            channel_commands::process_m3u_content
+            channel_commands::category_commands::get_categories,
+            channel_commands::import_commands::fetch_and_populate_data,
+            channel_commands::import_commands::process_m3u_content
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
