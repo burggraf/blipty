@@ -14,18 +14,16 @@ mod playlist_commands;
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
-            let bundle_identifier = "net.blipty.app";
             let app_handle = app.handle();
 
             // Initialize the database connection here
             let app_data_dir = app_handle
                 .path()
                 .app_data_dir()
-                .expect("Failed to get app data dir")
-                .join(bundle_identifier);
+                .expect("Failed to get app data dir");
 
             std::fs::create_dir_all(&app_data_dir).expect("Failed to create app data dir");
-            let db_path = app_data_dir.join("iptv.db");
+            let db_path = app_data_dir.join("blipty.db");
             println!("Database path: {:?}", db_path);
             //println!("App Config: {:?}", app.config());
             let conn = Connection::open(db_path).expect("Failed to open database connection");
