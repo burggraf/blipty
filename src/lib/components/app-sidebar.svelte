@@ -1,9 +1,5 @@
 <script lang="ts">
-	import Calendar from 'lucide-svelte/icons/calendar';
-	import House from 'lucide-svelte/icons/house';
-	import Inbox from 'lucide-svelte/icons/inbox';
-	import Search from 'lucide-svelte/icons/search';
-	import Settings from 'lucide-svelte/icons/settings';
+	// Removed unused imports
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
@@ -11,13 +7,13 @@
 	import PlaylistEditForm from '$lib/components/playlist-edit-form.svelte';
 	import ChannelList from '$lib/components/channel-list.svelte';
 	import { onMount } from 'svelte';
-	import { initializeDatabase, getPlaylists, deletePlaylist, fetchChannels } from '$lib/commands';
+	import { getPlaylists, deletePlaylist, fetchChannels } from '$lib/commands';
 	import type { Channel, Playlist } from '$lib/commands';
 	import { buttonVariants } from '$lib/components/ui/button/button.svelte';
 	import { cn } from '$lib/utils';
 	import { Pencil, Trash2, ArrowLeft } from 'lucide-svelte';
 	import { writable } from 'svelte/store';
-	import { selectedPlaylist, selectedChannel } from '$lib/stores';
+	import { selectedPlaylist } from '$lib/stores';
 	let providers: Playlist[] = [];
 	let error = '';
 	let loading = false;
