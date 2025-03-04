@@ -35,6 +35,9 @@
     ],
     "resources": [
       "Info.plist"
-    ]
+    ],
+    "iOS": {
+      "developmentTeam": "XXXXXXXXXX"
+    }
   }
 }
