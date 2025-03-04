@@ -137,7 +137,7 @@
 					liveBufferLatencyChasing: true,
 					liveSync: true,
 					lazyLoad: false,
-					stashInitialSize: 1024 * 1024 * 1 // 1MB initial buffer
+					stashInitialSize: 1024 * 1024 * 4 // 4MB initial buffer
 				}
 			} as mpegts.MediaDataSource);
 
@@ -166,11 +166,13 @@
 							console.debug('Playback stalled, attempting recovery');
 							destroyPlayer();
 							initializePlayer();
-						}, 5000);
+						}, Math.min(1000 * Math.pow(2, retryCount), 30000)); // Exponential backoff up to 30s
+						retryCount = Math.min(retryCount + 1, 5); // Limit to 5 retries
 					}
 				} else if (stallTimeout) {
 					clearTimeout(stallTimeout);
 					stallTimeout = null;
+					retryCount = 0; // Reset retry count on successful playback
 				}
 			});
 
