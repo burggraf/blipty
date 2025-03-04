@@ -18,7 +18,7 @@ pub async fn fetch_api_data(
     ),
     Error,
 > {
-    let mut api_data = Value::Null;
+    let mut _api_data = Value::Null;
     let client = reqwest::Client::new();
     let mut live_categories: HashMap<String, String> = HashMap::new();
     let mut vod_categories: HashMap<String, String> = HashMap::new();
@@ -349,7 +349,5 @@ pub async fn fetch_api_data(
         }
     }
 
-    api_data = Value::Array(all_channels);
-
-    Ok((api_data, live_categories, vod_categories, series_categories))
+    Ok((Value::Array(all_channels), live_categories, vod_categories, series_categories))
 }

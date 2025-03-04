@@ -1,4 +1,3 @@
-use rusqlite::params;
 use serde_json::Value;
 use std::collections::HashMap;
 use tauri::{AppHandle, Runtime, State};

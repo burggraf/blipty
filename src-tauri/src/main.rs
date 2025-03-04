@@ -3,7 +3,7 @@
 
 use rusqlite::Connection;
 use std::sync::Mutex;
-use tauri::{AppHandle, Manager};
+use tauri::{Manager};
 
 mod channel_commands;
 mod commands;

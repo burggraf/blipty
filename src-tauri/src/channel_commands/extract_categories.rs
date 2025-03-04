@@ -1,6 +1,7 @@
 use serde_json::Value;
 use std::collections::HashSet;
 
+#[allow(dead_code)]
 pub fn extract_categories(data: &Value) -> Vec<(String, String)> {
     let mut categories: HashSet<(String, String)> = HashSet::new();
 

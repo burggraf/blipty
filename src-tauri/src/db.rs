@@ -4,8 +4,6 @@ use std::sync::Mutex;
 
 pub mod migrations;
 
-use migrations::*;
-
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("Database error: {0}")]

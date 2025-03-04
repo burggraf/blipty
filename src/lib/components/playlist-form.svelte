@@ -12,7 +12,8 @@
 	let loading = $state(false);
 	let error = $state('');
 
-	async function handleSubmit() {
+	async function handleSubmit(event) {
+		event.preventDefault();
 		if (!name || !serverUrl || !username || !password) {
 			error = 'All fields are required';
 			return;
@@ -50,7 +51,7 @@
 	</Card.Header>
 
 	<Card.Content>
-		<form on:submit|preventDefault={handleSubmit} class="space-y-4">
+		<form onsubmit={handleSubmit} class="space-y-4">
 			<div class="space-y-2">
 				<label for="name" class="text-sm font-medium">Provider Name</label>
 				<Input

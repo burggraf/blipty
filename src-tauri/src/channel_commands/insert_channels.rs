@@ -13,7 +13,7 @@ pub fn insert_channels(
     username: &String,
     password: &String,
     playlist_id: i64,
-    _stream_type: &String, // Remove the unused parameter
+    _stream_type: &String, 
 ) -> Result<(), Error> {
     let mut conn = db.0.lock().unwrap();
     let tx = conn.transaction()?;
@@ -55,7 +55,7 @@ pub fn insert_channels(
 
         println!("Processing channel: {} (ID: {})", name, stream_id);
 
-        let mut category_id_for_stream: Option<i64> = None;
+        let mut _category_id_for_stream: Option<i64> = None;
         let category_name = match category_id {
             Some(id) => {
                 println!("Looking for category ID: {}", id);
@@ -69,23 +69,23 @@ pub fn insert_channels(
 
                         if let Some(row) = rows.next()? {
                             let internal_category_id: i64 = row.get(0)?;
-                            category_id_for_stream = Some(internal_category_id);
+                            _category_id_for_stream = Some(internal_category_id);
                         } else {
                             println!("Internal category ID not found for category_id: {}", id);
-                            category_id_for_stream = None;
+                            _category_id_for_stream = None;
                         }
                         name.clone()
                     }
                     None => {
                         println!("Category ID not found: {}", id);
-                        category_id_for_stream = None;
+                        _category_id_for_stream = None;
                         "Uncategorized".to_string()
                     }
                 }
             }
             None => {
                 println!("Category ID is None");
-                category_id_for_stream = None;
+                _category_id_for_stream = None;
                 "Uncategorized".to_string()
             }
         };
@@ -94,7 +94,7 @@ pub fn insert_channels(
         let stream_type = channel["stream_type"].as_str().unwrap_or("unknown");
 
         // Insert into streams table
-        let result = if let Some(cat_id) = category_id_for_stream {
+        let _result = if let Some(cat_id) = _category_id_for_stream {
             // Insert into streams table with category ID
             let sql = "INSERT OR IGNORE INTO streams (stream_id, name, stream_type, category_id, added) VALUES (?1, ?2, ?3, ?4, strftime('%s', 'now'))";
             println!("Executing SQL: {}", sql);
@@ -128,7 +128,7 @@ pub fn insert_channels(
             });
 
         let now = chrono::Utc::now().to_rfc3339();
-        let result = tx.execute(
+        let _result = tx.execute(
             "INSERT OR REPLACE INTO channels (playlist_id, category_id, category_name, stream_id, name, stream_type, stream_url, created_at)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
             params![playlist_id, category_id, category_name, stream_id, name, stream_type, stream_url, now],

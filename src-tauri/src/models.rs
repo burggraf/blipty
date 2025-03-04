@@ -71,6 +71,7 @@ pub enum Error {
     #[error("Database error: {0}")]
     Database(#[from] rusqlite::Error),
     #[error("IO error: {0}")]
+    #[allow(dead_code)]
     Io(String),
     #[error("HTTP error: {0}")]
     Http(#[from] reqwest::Error),
@@ -79,6 +80,7 @@ pub enum Error {
     #[error("Serde error: {0}")]
     Serde(#[from] serde_json::Error),
     #[error("Internal error: {0}")]
+    #[allow(dead_code)]
     Internal(String),
 }
 
