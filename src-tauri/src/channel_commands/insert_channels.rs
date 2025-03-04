@@ -129,7 +129,7 @@ pub fn insert_channels(
 
         let now = chrono::Utc::now().to_rfc3339();
         let result = tx.execute(
-            "INSERT INTO channels (playlist_id, category_id, category_name, stream_id, name, stream_type, stream_url, created_at)
+            "INSERT OR REPLACE INTO channels (playlist_id, category_id, category_name, stream_id, name, stream_type, stream_url, created_at)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
             params![playlist_id, category_id, category_name, stream_id, name, stream_type, stream_url, now],
         )?;
