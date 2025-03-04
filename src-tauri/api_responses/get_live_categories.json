@@ -1,0 +1,572 @@
+[
+  {
+    "category_id": "264",
+    "category_name": "USA News",
+    "parent_id": 0
+  },
+  {
+    "category_id": "266",
+    "category_name": "USA Movies Channels",
+    "parent_id": 0
+  },
+  {
+    "category_id": "339",
+    "category_name": "Premium Shows",
+    "parent_id": 0
+  },
+  {
+    "category_id": "265",
+    "category_name": "USA Entertainment",
+    "parent_id": 0
+  },
+  {
+    "category_id": "267",
+    "category_name": "USA Family & Kids",
+    "parent_id": 0
+  },
+  {
+    "category_id": "392",
+    "category_name": "USA Documentary",
+    "parent_id": 0
+  },
+  {
+    "category_id": "358",
+    "category_name": "USA Music",
+    "parent_id": 0
+  },
+  {
+    "category_id": "562",
+    "category_name": "USA PPV Cinema",
+    "parent_id": 0
+  },
+  {
+    "category_id": "988",
+    "category_name": "USA Religion",
+    "parent_id": 0
+  },
+  {
+    "category_id": "745",
+    "category_name": "Radio",
+    "parent_id": 0
+  },
+  {
+    "category_id": "757",
+    "category_name": "USA STIRR TV",
+    "parent_id": 0
+  },
+  {
+    "category_id": "739",
+    "category_name": "USA Peacock Network",
+    "parent_id": 0
+  },
+  {
+    "category_id": "598",
+    "category_name": "USA Local Channels ( Full List )",
+    "parent_id": 0
+  },
+  {
+    "category_id": "353",
+    "category_name": "USA Local - ABC",
+    "parent_id": 0
+  },
+  {
+    "category_id": "357",
+    "category_name": "USA Local - NBC",
+    "parent_id": 0
+  },
+  {
+    "category_id": "354",
+    "category_name": "USA Local - CBS",
+    "parent_id": 0
+  },
+  {
+    "category_id": "356",
+    "category_name": "USA Local - FOX",
+    "parent_id": 0
+  },
+  {
+    "category_id": "355",
+    "category_name": "USA Local - MISC",
+    "parent_id": 0
+  },
+  {
+    "category_id": "269",
+    "category_name": "USA Sports",
+    "parent_id": 0
+  },
+  {
+    "category_id": "386",
+    "category_name": "USA FanDuel Sports",
+    "parent_id": 0
+  },
+  {
+    "category_id": "540",
+    "category_name": "USA NBC Sports",
+    "parent_id": 0
+  },
+  {
+    "category_id": "387",
+    "category_name": "USA Bein Sports",
+    "parent_id": 0
+  },
+  {
+    "category_id": "400",
+    "category_name": "ESPN Events 200 VIP channels",
+    "parent_id": 0
+  },
+  {
+    "category_id": "335",
+    "category_name": "PPV-MMA/BOXING/WWE/UFC",
+    "parent_id": 0
+  },
+  {
+    "category_id": "870",
+    "category_name": "Pay Per View Events",
+    "parent_id": 0
+  },
+  {
+    "category_id": "398",
+    "category_name": "Soccer Special Events",
+    "parent_id": 0
+  },
+  {
+    "category_id": "361",
+    "category_name": "USA NFL - Sunday Ticket",
+    "parent_id": 0
+  },
+  {
+    "category_id": "395",
+    "category_name": "USA NCAAF",
+    "parent_id": 0
+  },
+  {
+    "category_id": "360",
+    "category_name": "USA NBA",
+    "parent_id": 0
+  },
+  {
+    "category_id": "1011",
+    "category_name": "USA WNBA",
+    "parent_id": 0
+  },
+  {
+    "category_id": "359",
+    "category_name": "USA MLB",
+    "parent_id": 0
+  },
+  {
+    "category_id": "362",
+    "category_name": "USA NHL",
+    "parent_id": 0
+  },
+  {
+    "category_id": "615",
+    "category_name": "Sport NCAA Men Basketball",
+    "parent_id": 0
+  },
+  {
+    "category_id": "667",
+    "category_name": "Sport College Baseball",
+    "parent_id": 0
+  },
+  {
+    "category_id": "363",
+    "category_name": "Sport Match Center",
+    "parent_id": 0
+  },
+  {
+    "category_id": "591",
+    "category_name": "Sport Tennis",
+    "parent_id": 0
+  },
+  {
+    "category_id": "592",
+    "category_name": "Sport Rugby",
+    "parent_id": 0
+  },
+  {
+    "category_id": "590",
+    "category_name": "Sport Cricket",
+    "parent_id": 0
+  },
+  {
+    "category_id": "593",
+    "category_name": "Sport Golf",
+    "parent_id": 0
+  },
+  {
+    "category_id": "594",
+    "category_name": "Sport Cycling",
+    "parent_id": 0
+  },
+  {
+    "category_id": "819",
+    "category_name": "24/7 Christmas",
+    "parent_id": 0
+  },
+  {
+    "category_id": "983",
+    "category_name": "CHRISTMAS",
+    "parent_id": 0
+  },
+  {
+    "category_id": "628",
+    "category_name": "24/7 Tv Series",
+    "parent_id": 0
+  },
+  {
+    "category_id": "664",
+    "category_name": "24/7 Movie Series",
+    "parent_id": 0
+  },
+  {
+    "category_id": "627",
+    "category_name": "24/7 Music",
+    "parent_id": 0
+  },
+  {
+    "category_id": "707",
+    "category_name": "24/7 Action & Adventure",
+    "parent_id": 0
+  },
+  {
+    "category_id": "708",
+    "category_name": "24/7 Action",
+    "parent_id": 0
+  },
+  {
+    "category_id": "709",
+    "category_name": "24/7 Adventure",
+    "parent_id": 0
+  },
+  {
+    "category_id": "710",
+    "category_name": "24/7 Cartoon",
+    "parent_id": 0
+  },
+  {
+    "category_id": "711",
+    "category_name": "24/7 Classic Show",
+    "parent_id": 0
+  },
+  {
+    "category_id": "712",
+    "category_name": "24/7 Comedy",
+    "parent_id": 0
+  },
+  {
+    "category_id": "713",
+    "category_name": "24/7 Cooking",
+    "parent_id": 0
+  },
+  {
+    "category_id": "714",
+    "category_name": "24/7 Crime",
+    "parent_id": 0
+  },
+  {
+    "category_id": "715",
+    "category_name": "24/7 Documentary",
+    "parent_id": 0
+  },
+  {
+    "category_id": "716",
+    "category_name": "24/7 Drama",
+    "parent_id": 0
+  },
+  {
+    "category_id": "717",
+    "category_name": "24/7 Family",
+    "parent_id": 0
+  },
+  {
+    "category_id": "718",
+    "category_name": "24/7 Fantasy",
+    "parent_id": 0
+  },
+  {
+    "category_id": "719",
+    "category_name": "24/7 Horror",
+    "parent_id": 0
+  },
+  {
+    "category_id": "721",
+    "category_name": "24/7 Kids",
+    "parent_id": 0
+  },
+  {
+    "category_id": "1018",
+    "category_name": "24/7 Netflix",
+    "parent_id": 0
+  },
+  {
+    "category_id": "720",
+    "category_name": "24/7 Kids & Family",
+    "parent_id": 0
+  },
+  {
+    "category_id": "723",
+    "category_name": "24/7 Mysteries",
+    "parent_id": 0
+  },
+  {
+    "category_id": "724",
+    "category_name": "24/7 News",
+    "parent_id": 0
+  },
+  {
+    "category_id": "731",
+    "category_name": "24/7 Talk",
+    "parent_id": 0
+  },
+  {
+    "category_id": "725",
+    "category_name": "24/7 Reality",
+    "parent_id": 0
+  },
+  {
+    "category_id": "726",
+    "category_name": "24/7 Science Fiction",
+    "parent_id": 0
+  },
+  {
+    "category_id": "728",
+    "category_name": "24/7 Shows",
+    "parent_id": 0
+  },
+  {
+    "category_id": "732",
+    "category_name": "24/7 Movie Categories",
+    "parent_id": 0
+  },
+  {
+    "category_id": "811",
+    "category_name": "24/7 Actors and Actresses",
+    "parent_id": 0
+  },
+  {
+    "category_id": "729",
+    "category_name": "24/7 Soap",
+    "parent_id": 0
+  },
+  {
+    "category_id": "733",
+    "category_name": "24/7 War & Politics",
+    "parent_id": 0
+  },
+  {
+    "category_id": "730",
+    "category_name": "24/7 Sports Replay",
+    "parent_id": 0
+  },
+  {
+    "category_id": "727",
+    "category_name": "24/7 Sci-fi",
+    "parent_id": 0
+  },
+  {
+    "category_id": "734",
+    "category_name": "24/7 Western",
+    "parent_id": 0
+  },
+  {
+    "category_id": "825",
+    "category_name": "24/7 Comedy & Drama",
+    "parent_id": 0
+  },
+  {
+    "category_id": "828",
+    "category_name": "24/7  SYFY",
+    "parent_id": 0
+  },
+  {
+    "category_id": "827",
+    "category_name": "24/7 Documentary Series",
+    "parent_id": 0
+  },
+  {
+    "category_id": "826",
+    "category_name": "24/7 Classic Tv Series",
+    "parent_id": 0
+  },
+  {
+    "category_id": "831",
+    "category_name": "24/7 Reality Shows",
+    "parent_id": 0
+  },
+  {
+    "category_id": "832",
+    "category_name": "24/7 Anime",
+    "parent_id": 0
+  },
+  {
+    "category_id": "830",
+    "category_name": "24/7 Action & Crime",
+    "parent_id": 0
+  },
+  {
+    "category_id": "1019",
+    "category_name": "24/7 Teen Cartoons",
+    "parent_id": 0
+  },
+  {
+    "category_id": "829",
+    "category_name": "24/7 Toddler",
+    "parent_id": 0
+  },
+  {
+    "category_id": "351",
+    "category_name": "USA Latin",
+    "parent_id": 0
+  },
+  {
+    "category_id": "532",
+    "category_name": "USA Latin GALAVISION",
+    "parent_id": 0
+  },
+  {
+    "category_id": "536",
+    "category_name": "USA Latin TELEMUNDO",
+    "parent_id": 0
+  },
+  {
+    "category_id": "538",
+    "category_name": "USA Latin UNIVISION",
+    "parent_id": 0
+  },
+  {
+    "category_id": "537",
+    "category_name": "USA Latin UNIMAS",
+    "parent_id": 0
+  },
+  {
+    "category_id": "972",
+    "category_name": "CA: Canada General",
+    "parent_id": 0
+  },
+  {
+    "category_id": "973",
+    "category_name": "CA: Canada News",
+    "parent_id": 0
+  },
+  {
+    "category_id": "374",
+    "category_name": "CA: Canada Entertainment",
+    "parent_id": 0
+  },
+  {
+    "category_id": "974",
+    "category_name": "CA: Canada Cinema",
+    "parent_id": 0
+  },
+  {
+    "category_id": "971",
+    "category_name": "CA: Canada Local",
+    "parent_id": 0
+  },
+  {
+    "category_id": "399",
+    "category_name": "CA: Canada Sports",
+    "parent_id": 0
+  },
+  {
+    "category_id": "1003",
+    "category_name": "Hockey Special Events",
+    "parent_id": 0
+  },
+  {
+    "category_id": "800",
+    "category_name": "CA: Canada Super Sports",
+    "parent_id": 0
+  },
+  {
+    "category_id": "397",
+    "category_name": "CA: Canada Kids",
+    "parent_id": 0
+  },
+  {
+    "category_id": "375",
+    "category_name": "CA: Canada FR",
+    "parent_id": 0
+  },
+  {
+    "category_id": "634",
+    "category_name": "Sports DAZN",
+    "parent_id": 0
+  },
+  {
+    "category_id": "748",
+    "category_name": "UK: News",
+    "parent_id": 0
+  },
+  {
+    "category_id": "544",
+    "category_name": "UK: Entertainment",
+    "parent_id": 0
+  },
+  {
+    "category_id": "546",
+    "category_name": "UK: Movies",
+    "parent_id": 0
+  },
+  {
+    "category_id": "547",
+    "category_name": "UK: Music",
+    "parent_id": 0
+  },
+  {
+    "category_id": "545",
+    "category_name": "UK: Kids",
+    "parent_id": 0
+  },
+  {
+    "category_id": "543",
+    "category_name": "UK: Documentary",
+    "parent_id": 0
+  },
+  {
+    "category_id": "376",
+    "category_name": "UK: Religion",
+    "parent_id": 0
+  },
+  {
+    "category_id": "749",
+    "category_name": "UK: Asia",
+    "parent_id": 0
+  },
+  {
+    "category_id": "549",
+    "category_name": "UK: Sport",
+    "parent_id": 0
+  },
+  {
+    "category_id": "389",
+    "category_name": "UK: EPL Games",
+    "parent_id": 0
+  },
+  {
+    "category_id": "542",
+    "category_name": "IRE: Ireland General",
+    "parent_id": 0
+  },
+  {
+    "category_id": "842",
+    "category_name": "Adults (18+)",
+    "parent_id": 0
+  },
+  {
+    "category_id": "70",
+    "category_name": "Adults",
+    "parent_id": 0
+  },
+  {
+    "category_id": "604",
+    "category_name": "Adults 24-7",
+    "parent_id": 0
+  },
+  {
+    "category_id": "629",
+    "category_name": "24/7 Adult",
+    "parent_id": 0
+  }
+]

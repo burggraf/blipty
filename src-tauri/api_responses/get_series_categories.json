@@ -1,0 +1,202 @@
+[
+  {
+    "category_id": "432",
+    "category_name": "Series-Documentary",
+    "parent_id": 0
+  },
+  {
+    "category_id": "433",
+    "category_name": "Series-Drama",
+    "parent_id": 0
+  },
+  {
+    "category_id": "434",
+    "category_name": "Series-Family",
+    "parent_id": 0
+  },
+  {
+    "category_id": "436",
+    "category_name": "Series-History",
+    "parent_id": 0
+  },
+  {
+    "category_id": "427",
+    "category_name": "Series-Action",
+    "parent_id": 0
+  },
+  {
+    "category_id": "428",
+    "category_name": "Series-Action & Adventure",
+    "parent_id": 0
+  },
+  {
+    "category_id": "430",
+    "category_name": "Series-Comedy",
+    "parent_id": 0
+  },
+  {
+    "category_id": "429",
+    "category_name": "Series-Animation",
+    "parent_id": 0
+  },
+  {
+    "category_id": "452",
+    "category_name": "Series-Adventure",
+    "parent_id": 0
+  },
+  {
+    "category_id": "431",
+    "category_name": "Series-Crime",
+    "parent_id": 0
+  },
+  {
+    "category_id": "451",
+    "category_name": "Series-War & Politics",
+    "parent_id": 0
+  },
+  {
+    "category_id": "442",
+    "category_name": "Series-Reality",
+    "parent_id": 0
+  },
+  {
+    "category_id": "441",
+    "category_name": "Series-News",
+    "parent_id": 0
+  },
+  {
+    "category_id": "440",
+    "category_name": "Series-Mystery",
+    "parent_id": 0
+  },
+  {
+    "category_id": "438",
+    "category_name": "Series-Kids",
+    "parent_id": 0
+  },
+  {
+    "category_id": "437",
+    "category_name": "Series-Horror",
+    "parent_id": 0
+  },
+  {
+    "category_id": "435",
+    "category_name": "Series-Fantasy",
+    "parent_id": 0
+  },
+  {
+    "category_id": "582",
+    "category_name": "Series-Western",
+    "parent_id": 0
+  },
+  {
+    "category_id": "584",
+    "category_name": "Series-Talk",
+    "parent_id": 0
+  },
+  {
+    "category_id": "586",
+    "category_name": "Series-Soap",
+    "parent_id": 0
+  },
+  {
+    "category_id": "587",
+    "category_name": "Series-Sci-Fi & Fantasy",
+    "parent_id": 0
+  },
+  {
+    "category_id": "588",
+    "category_name": "Series-Anime",
+    "parent_id": 0
+  },
+  {
+    "category_id": "596",
+    "category_name": "Series-Classic",
+    "parent_id": 0
+  },
+  {
+    "category_id": "840",
+    "category_name": "Series-Music",
+    "parent_id": 0
+  },
+  {
+    "category_id": "687",
+    "category_name": "Series-Romance",
+    "parent_id": 0
+  },
+  {
+    "category_id": "663",
+    "category_name": "Series-Thriller",
+    "parent_id": 0
+  },
+  {
+    "category_id": "642",
+    "category_name": "English Series Translated to Arabic",
+    "parent_id": 0
+  },
+  {
+    "category_id": "690",
+    "category_name": "Germany Series",
+    "parent_id": 0
+  },
+  {
+    "category_id": "693",
+    "category_name": "Sports Series",
+    "parent_id": 0
+  },
+  {
+    "category_id": "703",
+    "category_name": "Multi-Sub Series",
+    "parent_id": 0
+  },
+  {
+    "category_id": "705",
+    "category_name": "French Series",
+    "parent_id": 0
+  },
+  {
+    "category_id": "772",
+    "category_name": "NetFlix Series (Multi-Lang)",
+    "parent_id": 0
+  },
+  {
+    "category_id": "795",
+    "category_name": "Saudi Arabia Series",
+    "parent_id": 0
+  },
+  {
+    "category_id": "854",
+    "category_name": "Server 1",
+    "parent_id": 0
+  },
+  {
+    "category_id": "855",
+    "category_name": "Server 2",
+    "parent_id": 0
+  },
+  {
+    "category_id": "857",
+    "category_name": "Server 4",
+    "parent_id": 0
+  },
+  {
+    "category_id": "858",
+    "category_name": "Server 5",
+    "parent_id": 0
+  },
+  {
+    "category_id": "942",
+    "category_name": "Server 6",
+    "parent_id": 0
+  },
+  {
+    "category_id": "1005",
+    "category_name": "Server 7",
+    "parent_id": 0
+  },
+  {
+    "category_id": "1022",
+    "category_name": "Server 1 NEW",
+    "parent_id": 0
+  }
+]

@@ -1,0 +1,252 @@
+[
+  {
+    "category_id": "570",
+    "category_name": "Movies-New Releases",
+    "parent_id": 0
+  },
+  {
+    "category_id": "401",
+    "category_name": "Movie-Action",
+    "parent_id": 0
+  },
+  {
+    "category_id": "419",
+    "category_name": "Movie-Sci-Fi",
+    "parent_id": 0
+  },
+  {
+    "category_id": "403",
+    "category_name": "Movie-Adventure",
+    "parent_id": 0
+  },
+  {
+    "category_id": "415",
+    "category_name": "Movie-Mystery",
+    "parent_id": 0
+  },
+  {
+    "category_id": "404",
+    "category_name": "Movie-Animation",
+    "parent_id": 0
+  },
+  {
+    "category_id": "418",
+    "category_name": "Movie-Romance",
+    "parent_id": 0
+  },
+  {
+    "category_id": "405",
+    "category_name": "Movie-Comedy",
+    "parent_id": 0
+  },
+  {
+    "category_id": "406",
+    "category_name": "Movie-Crime",
+    "parent_id": 0
+  },
+  {
+    "category_id": "407",
+    "category_name": "Movie-Documentary",
+    "parent_id": 0
+  },
+  {
+    "category_id": "408",
+    "category_name": "Movie-Drama",
+    "parent_id": 0
+  },
+  {
+    "category_id": "409",
+    "category_name": "Movie-Family",
+    "parent_id": 0
+  },
+  {
+    "category_id": "410",
+    "category_name": "Movie-Fantasy",
+    "parent_id": 0
+  },
+  {
+    "category_id": "411",
+    "category_name": "Movie-History",
+    "parent_id": 0
+  },
+  {
+    "category_id": "412",
+    "category_name": "Movie-Horror",
+    "parent_id": 0
+  },
+  {
+    "category_id": "425",
+    "category_name": "Movie-War",
+    "parent_id": 0
+  },
+  {
+    "category_id": "424",
+    "category_name": "Movie-TV Movie",
+    "parent_id": 0
+  },
+  {
+    "category_id": "423",
+    "category_name": "Movie-Thriller",
+    "parent_id": 0
+  },
+  {
+    "category_id": "571",
+    "category_name": "Movies-Music festivals",
+    "parent_id": 0
+  },
+  {
+    "category_id": "578",
+    "category_name": "Movies-Anime",
+    "parent_id": 0
+  },
+  {
+    "category_id": "567",
+    "category_name": "Movies-Kids",
+    "parent_id": 0
+  },
+  {
+    "category_id": "414",
+    "category_name": "Movie-Music",
+    "parent_id": 0
+  },
+  {
+    "category_id": "576",
+    "category_name": "Movies-Concerts",
+    "parent_id": 0
+  },
+  {
+    "category_id": "577",
+    "category_name": "Movies-Classic",
+    "parent_id": 0
+  },
+  {
+    "category_id": "568",
+    "category_name": "Movies-Western",
+    "parent_id": 0
+  },
+  {
+    "category_id": "572",
+    "category_name": "Movies-Lifetime",
+    "parent_id": 0
+  },
+  {
+    "category_id": "617",
+    "category_name": "Movies-Netflix",
+    "parent_id": 0
+  },
+  {
+    "category_id": "625",
+    "category_name": "Movies-Christmas",
+    "parent_id": 0
+  },
+  {
+    "category_id": "781",
+    "category_name": "Movies-CAM/TS",
+    "parent_id": 0
+  },
+  {
+    "category_id": "809",
+    "category_name": "Tom & Jerry Collection",
+    "parent_id": 0
+  },
+  {
+    "category_id": "624",
+    "category_name": "Movies-HBO",
+    "parent_id": 0
+  },
+  {
+    "category_id": "217",
+    "category_name": "Movies Turkey",
+    "parent_id": 0
+  },
+  {
+    "category_id": "215",
+    "category_name": "Movies Spanish",
+    "parent_id": 0
+  },
+  {
+    "category_id": "767",
+    "category_name": "3D Movie",
+    "parent_id": 0
+  },
+  {
+    "category_id": "775",
+    "category_name": "WWE Boxing",
+    "parent_id": 0
+  },
+  {
+    "category_id": "776",
+    "category_name": "UFC Main Events",
+    "parent_id": 0
+  },
+  {
+    "category_id": "675",
+    "category_name": "Movies-Other Sports Replays",
+    "parent_id": 0
+  },
+  {
+    "category_id": "778",
+    "category_name": "Movies-UFC Fight Nights",
+    "parent_id": 0
+  },
+  {
+    "category_id": "740",
+    "category_name": "Private (18+) Vods",
+    "parent_id": 0
+  },
+  {
+    "category_id": "618",
+    "category_name": "VOD Adults",
+    "parent_id": 0
+  },
+  {
+    "category_id": "817",
+    "category_name": "French & English Movies 4K",
+    "parent_id": 0
+  },
+  {
+    "category_id": "996",
+    "category_name": "Kung-Fu Movies",
+    "parent_id": 0
+  },
+  {
+    "category_id": "1020",
+    "category_name": "WWE Main Event",
+    "parent_id": 0
+  },
+  {
+    "category_id": "847",
+    "category_name": "Server 1",
+    "parent_id": 0
+  },
+  {
+    "category_id": "848",
+    "category_name": "Server 2",
+    "parent_id": 0
+  },
+  {
+    "category_id": "850",
+    "category_name": "Server 3",
+    "parent_id": 0
+  },
+  {
+    "category_id": "851",
+    "category_name": "Server 4",
+    "parent_id": 0
+  },
+  {
+    "category_id": "989",
+    "category_name": "Server 5",
+    "parent_id": 0
+  },
+  {
+    "category_id": "949",
+    "category_name": "Server 6",
+    "parent_id": 0
+  },
+  {
+    "category_id": "1004",
+    "category_name": "Server 7",
+    "parent_id": 0
+  }
+]
