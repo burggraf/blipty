@@ -17,7 +17,7 @@ pub fn insert_categories(
     let tx = conn.transaction()?;
     for (cat_id, (cat_name, content_type, parent_id)) in all_categories {
         let result = tx.execute(
-            "INSERT INTO categories (category_id, name, type, parent_id, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, strftime('%s', 'now'), strftime('%s', 'now'))",
+            "INSERT INTO categories (category_id, name, content_type, parent_id, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, strftime('%s', 'now'), strftime('%s', 'now'))",
             params![cat_id, cat_name, content_type, parent_id],
         );
         match result {

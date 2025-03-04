@@ -25,7 +25,7 @@ pub fn create_categories_table(conn: &Connection) -> SqliteResult<()> {
         category_id INTEGER NOT NULL UNIQUE,
         name TEXT NOT NULL,
         content_type TEXT NOT NULL DEFAULT 'live',
-        type TEXT CHECK(type IN ('live', 'vod')) NOT NULL,
+        type TEXT CHECK(type IN ('live', 'vod', 'movie', 'series')) NOT NULL DEFAULT 'movie',
         parent_id INTEGER,
         created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
         updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
