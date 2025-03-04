@@ -5,10 +5,20 @@
 	import { selectedPlaylist, selectedChannel as selectedChannelStore } from '$lib/stores';
 	import VideoPlayer from './video-player.svelte';
 
+	interface CategoryGroup {
+		name: string;
+		channels: Channel[];
+	}
+
+	interface ContentTypeGroup {
+		name: string;
+		categories: CategoryGroup[];
+	}
+
 	const { channels, playlist_id } = $props<{
 		channels: Channel[];
 		playlist_id: number;
-	}>(); 
+	}>();
 
 	let currentPlaylist = $state<Playlist | null>(null);
 	let selectedChannel = $state<Channel | null>(null);
@@ -79,10 +89,10 @@
 
 	// Group channels by content_type and then by category
 	let channelsByContentType = $derived(
-		channels.reduce((acc, channel) => {
-			const contentType = channel.content_type || 'live';
+		channels.reduce((acc: Map<string, Map<string, CategoryGroup>>, channel: Channel) => {
+			const contentType = channel.stream_type || 'live';
 			const categoryId = channel.category_id || 'uncategorized';
-			
+
 			// Get or create the content type group
 			if (!acc.has(contentType)) {
 				acc.set(contentType, new Map());
@@ -100,23 +110,25 @@
 			// Add the channel to its category
 			contentTypeMap.get(categoryId)!.channels.push(channel);
 			return acc;
-		}, new Map<string, Map<string, { name: string; channels: Channel[] }>>())
+		}, new Map<string, Map<string, CategoryGroup>>())
 	);
 
 	// Convert to array and sort
 	let contentTypes = $derived(
-		Array.from(channelsByContentType.entries())
-			.map(([contentType, categories]) => ({
+		(Array.from(channelsByContentType.entries()) as [string, Map<string, CategoryGroup>][])
+			.map(([contentType, categories]: [string, Map<string, CategoryGroup>]) => ({
 				name: contentType.charAt(0).toUpperCase() + contentType.slice(1),
 				categories: Array.from(categories.entries())
-					.map(([id, category]) => ({
+					.map(([id, category]: [string, CategoryGroup]) => ({
 						id,
 						name: category.name,
-						channels: category.channels.sort((a, b) => a.name.localeCompare(b.name))
+						channels: category.channels.sort((a: Channel, b: Channel) =>
+							a.name.localeCompare(b.name)
+						)
 					}))
-					.sort((a, b) => a.name.localeCompare(b.name))
+					.sort((a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name))
 			}))
-			.sort((a, b) => a.name.localeCompare(b.name))
+			.sort((a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name))
 	);
 
 	async function handleChannelClick(channel: Channel) {
