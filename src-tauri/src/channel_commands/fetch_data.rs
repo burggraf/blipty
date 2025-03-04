@@ -53,7 +53,7 @@ pub async fn fetch_and_populate_data<R: Runtime>(
     for (category_id, category_name) in vod_categories {
         vod_categories_with_type.insert(
             category_id.clone(),
-            (category_name, "vod".to_string(), None),
+            (category_name, "movie".to_string(), None),
         );
     }
 
