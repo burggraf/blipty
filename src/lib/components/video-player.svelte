@@ -137,7 +137,7 @@
 					liveBufferLatencyChasing: true,
 					liveSync: true,
 					lazyLoad: false,
-					stashInitialSize: 1024 * 1024 * 4 // 4MB initial buffer
+					stashInitialSize: calculateBufferSize() // Dynamic buffer size based on available memory
 				}
 			} as mpegts.MediaDataSource);
 
@@ -185,6 +185,15 @@
 			isError = true;
 			errorMessage = 'Failed to initialize video player';
 		}
+	}
+
+	function calculateBufferSize() {
+		// navigator.deviceMemory returns memory in GB (2, 4, 8, etc.)
+		const memoryGB = navigator.deviceMemory || 4; // Default to 4GB if unavailable
+		// Allocate 2MB per GB of memory, with a minimum of 4MB and maximum of 64MB
+		const memsize = Math.min(Math.max(memoryGB * 2 * 1024 * 1024, 4 * 1024 * 1024), 64 * 1024 * 1024);
+		console.log('Allocated buffer size:', memsize);
+		return memsize;
 	}
 
 	async function handleSourceChange(newSrc: string) {
