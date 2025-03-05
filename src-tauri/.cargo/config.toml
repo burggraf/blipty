@@ -1,0 +1,15 @@
+[target.aarch64-linux-android]
+ar = "aarch64-linux-android-ar"
+linker = "aarch64-linux-android24-clang"
+rustflags = [
+    "-L",
+    "native=/Users/markb/Library/Android/sdk/ndk/29.0.13113456/toolchains/llvm/prebuilt/darwin-x86_64/lib/gcc/aarch64-linux-android/4.9.x",
+    "-L",
+    "native=/Users/markb/Library/Android/sdk/ndk/29.0.13113456/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/lib/aarch64-linux-android/24",
+    "-l",
+    "android",
+    "-l",
+    "log",
+    "-l",
+    "OpenSLES",
+]

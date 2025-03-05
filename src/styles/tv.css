@@ -1,0 +1,38 @@
+/* Android TV specific styles */
+.tv-focused {
+	outline: 3px solid #0078d7;
+	outline-offset: 3px;
+	transform: scale(1.05);
+	transition: all 0.2s ease-in-out;
+}
+
+/* TV-optimized font sizes and padding */
+@media (min-width: 960px) {
+	body {
+		font-size: 20px;
+	}
+
+	button,
+	.button {
+		padding: 16px 24px;
+		font-size: 22px;
+		min-height: 60px;
+		min-width: 120px;
+	}
+
+	input,
+	select,
+	textarea {
+		font-size: 20px;
+		padding: 12px;
+	}
+}
+
+/* Ensure clickable items are big enough for TV navigation */
+button,
+.button,
+[role='button'],
+a[href] {
+	min-height: 48px;
+	min-width: 48px;
+}

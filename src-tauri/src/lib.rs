@@ -5,8 +5,6 @@ pub mod models;
 pub mod playlist_commands;
 
 #[cfg(mobile)]
-// pub mod mobile;
-
 pub fn setup(_app_handle: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(feature = "custom-protocol")]
     _app_handle
@@ -16,4 +14,19 @@ pub fn setup(_app_handle: &tauri::AppHandle) -> Result<(), Box<dyn std::error::E
         })?;
     // Initialize your resource
     Ok(())
+}
+
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub fn run() {
+    tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![
+            channel_commands::fetch_api::get_live_streams,
+            channel_commands::fetch_api::get_vod,
+            channel_commands::fetch_api::get_series,
+            channel_commands::fetch_channels,
+            channel_commands::get_selected_channel,
+            channel_commands::set_selected_channel
+        ])
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
 }

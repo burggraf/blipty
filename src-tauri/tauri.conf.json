@@ -39,5 +39,19 @@
     "iOS": {
       "developmentTeam": "XXXXXXXXXX"
     }
+  },
+  "plugins": {
+    "android": {
+      "package": "net.blipty.app",
+      "applicationId": "net.blipty.app",
+      "minSdkVersion": 21,
+      "targetSdkVersion": 33,
+      "features": {
+        "leanback": true,
+        "touchscreen": {
+          "required": false
+        }
+      }
+    }
   }
 }

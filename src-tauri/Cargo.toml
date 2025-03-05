@@ -1,35 +1,42 @@
 [package]
-name = "app"
+name = "blipty"
 version = "1.0.0"
-description = "A Tauri application"
-authors = ["Mark"]
+description = "Blipty IPTV App"
+authors = ["Mark Bussinger"]
 license = ""
 repository = ""
 edition = "2021"
+rust-version = "1.70"
+
+[package.metadata.bundle]
+identifier = "net.blipty.app"
 
 [lib]
-name = "app_lib"
-crate-type = ["staticlib", "cdylib", "rlib"]
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+name = "blipty"
+crate-type = ["lib", "cdylib", "staticlib"]
 
 [build-dependencies]
-tauri-build = { version = "2.0.0-beta", features = [] }
+tauri-build = { version = "2.0.0-beta.9", features = [] }
 
 [dependencies]
-tauri = { version = "2.0.0-beta", features = ["devtools"] }
-serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+tauri = { version = "2.0.0-beta.12", features = [] }
 rusqlite = { version = "0.30.0", features = ["bundled"] }
-thiserror = "1.0"
+reqwest = { version = "0.11.22", features = [
+    "json",
+    "rustls-tls",
+], default-features = false }
+tokio = { version = "1.35.0", features = ["full"] }
 chrono = "0.4"
-log = "0.4"
-simple_logger = "4.2"
-reqwest = { version = "0.12", features = ["json"] }
-url = "2.5.0"
-tokio = { version = "1.36", features = ["rt-multi-thread", "sync"] }
+thiserror = "1.0"
+url = "2.4"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
 # DO NOT REMOVE!!
 custom-protocol = ["tauri/custom-protocol"]
+
+# Prevents additional console window on Windows in release, DO NOT REMOVE!!
+[target.'cfg(windows)'.dependencies]
+webview2-com = "0.19.1"

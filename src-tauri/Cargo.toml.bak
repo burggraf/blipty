@@ -1,0 +1,36 @@
+[package]
+name = "blipty"
+version = "1.0.0"
+description = "A Tauri application"
+authors = ["Mark"]
+license = ""
+repository = ""
+edition = "2021"
+
+[package.metadata.bundle]
+identifier = "net.blipty.app"
+
+[lib]
+name = "app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.0.0-beta", features = ["config-toml"] }
+
+[dependencies]
+tauri = { version = "2.0.0-beta", features = ["shell-open"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+rusqlite = { version = "0.30.0", features = ["bundled"] }
+thiserror = "1.0"
+chrono = "0.4"
+log = "0.4"
+simple_logger = "4.2"
+reqwest = { version = "0.12", features = ["json"] }
+url = "2.5.0"
+tokio = { version = "1.36", features = ["rt-multi-thread", "sync"] }
+
+[target."cfg(target_os = \"android\")".dependencies]
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]
