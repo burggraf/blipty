@@ -9,7 +9,8 @@
 		getSelectedChannel,
 		getPlaylists,
 		deletePlaylist,
-		fetchChannels
+		fetchChannels,
+		getDbPath
 	} from '$lib/commands';
 	import { selectedPlaylist, selectedChannel } from '$lib/stores';
 	import type { Channel, Playlist } from '$lib/commands';
@@ -18,6 +19,7 @@
 	import { Pencil, Trash2, ArrowLeft } from 'lucide-svelte';
 	import { writable } from 'svelte/store';
 	import VideoPlayer from '$lib/components/video-player.svelte';
+	import { onMount } from 'svelte';
 
 	let providers = $state<Playlist[]>([]);
 	let error = $state('');
@@ -29,6 +31,16 @@
 	const { playlist_id } = $props<{ playlist_id: number }>();
 	let currentPlaylist = $state<Playlist | null>(null);
 	let selectedChannelValue = $state<Channel | null>(null);
+	let dbPath = '';
+
+	onMount(async () => {
+		try {
+			dbPath = await getDbPath();
+		} catch (error) {
+			console.error('Error getting DB path:', error);
+			dbPath = 'Error getting DB path: ' + error;
+		}
+	});
 
 	async function initializeApp() {
 		try {
@@ -213,3 +225,10 @@
 		</div>
 	{/if}
 </main>
+
+<div
+	class="debug-info"
+	style="position: fixed; bottom: 0; left: 0; background: rgba(0,0,0,0.8); color: white; padding: 8px; font-size: 12px; max-width: 100%; word-break: break-all;"
+>
+	DB Path: {dbPath}
+</div>

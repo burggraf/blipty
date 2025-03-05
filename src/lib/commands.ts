@@ -33,6 +33,10 @@ export async function deletePlaylist(id: number): Promise<void> {
     return await invoke('delete_playlist', { id });
 }
 
+export async function getDbPath(): Promise<string> {
+    return await invoke('get_db_path');
+}
+
 export interface Channel {
     id?: number;
     playlist_id: number;
@@ -74,14 +78,14 @@ export interface Channel {
 export async function fetchChannels(id: number): Promise<Channel[]> {
     // First check if we have any channels for this playlist
     const channels = await invoke('fetch_channels', { playlistId: id });
-    
+
     // If no channels, fetch and populate data from the provider
     if (channels.length === 0) {
         console.log(`No channels found for playlist ${id}, fetching from provider...`);
         // Get the playlist details
         const playlists = await getPlaylists();
         const playlist = playlists.find(p => p.id === id);
-        
+
         if (playlist) {
             try {
                 console.log(`Fetching data for playlist: ${playlist.name}`);
@@ -90,15 +94,15 @@ export async function fetchChannels(id: number): Promise<Channel[]> {
                 if (serverUrl.endsWith('/')) {
                     serverUrl = serverUrl.slice(0, -1);
                 }
-                
+
                 console.log(`Attempting to fetch data from: ${serverUrl}`);
-                await invoke('fetch_and_populate_data', { 
+                await invoke('fetch_and_populate_data', {
                     playlistId: id,
                     serverUrl: serverUrl,
                     username: playlist.username,
                     password: playlist.password
                 });
-                
+
                 // Now fetch the channels again
                 return await invoke('fetch_channels', { playlistId: id });
             } catch (error) {
@@ -107,7 +111,7 @@ export async function fetchChannels(id: number): Promise<Channel[]> {
             }
         }
     }
-    
+
     return channels;
 }
 
