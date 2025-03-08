@@ -31,7 +31,7 @@
 	const { playlist_id } = $props<{ playlist_id: number }>();
 	let currentPlaylist = $state<Playlist | null>(null);
 	let selectedChannelValue = $state<Channel | null>(null);
-	let dbPath = '';
+	let dbPath = $state('');
 
 	onMount(async () => {
 		try {

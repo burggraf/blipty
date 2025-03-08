@@ -130,7 +130,6 @@ pub fn create_channels_table(conn: &Connection) -> SqliteResult<()> {
             created_at TEXT NOT NULL,
             is_selected INTEGER DEFAULT 0,
             FOREIGN KEY(playlist_id) REFERENCES playlists(id) ON DELETE CASCADE
-            FOREIGN KEY(playlist_id) REFERENCES playlists(id) ON DELETE CASCADE
         )";
 
         match conn.execute(create_channels_table, []) {

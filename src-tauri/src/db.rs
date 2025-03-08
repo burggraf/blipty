@@ -29,6 +29,30 @@ impl From<std::io::Error> for Error {
 
 pub struct DbConnection(pub Mutex<Connection>);
 
+impl DbConnection {
+    pub fn new() -> Self {
+        // Get the app data directory path for the database
+        let app_data_dir = if cfg!(target_os = "android") {
+            dirs::data_local_dir().expect("Failed to get local data directory")
+        } else {
+            dirs::data_dir()
+                .expect("Failed to get data directory")
+                .join("net.blipty.app")
+        };
+
+        std::fs::create_dir_all(&app_data_dir).expect("Failed to create app data directory");
+        let db_path = app_data_dir.join("blipty.db");
+
+        // Open the file-based database
+        let conn = Connection::open(&db_path).expect("Failed to open database");
+
+        // Initialize the database schema
+        init_db(&conn).expect("Failed to initialize database schema");
+
+        DbConnection(Mutex::new(conn))
+    }
+}
+
 pub fn check_and_create_channels_table(conn: &Connection) -> SqliteResult<()> {
     migrations::create_channels_table(conn)
 }

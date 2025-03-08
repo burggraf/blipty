@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import * as Accordion from '$lib/components/ui/accordion';
 	import type { Channel, Playlist } from '$lib/commands';
 	import { setSelectedChannel, getSelectedChannel, getPlaylists } from '$lib/commands';
@@ -23,6 +24,47 @@
 	let currentPlaylist = $state<Playlist | null>(null);
 	let selectedChannel = $state<Channel | null>(null);
 	let storeValue = $state<Channel | null>(null);
+	let allChannels = $state<Channel[]>([]);
+
+	// Function to get all channels in a flat array for easy iteration
+	function getAllChannels() {
+		const flatChannels: Channel[] = [];
+		contentTypes.forEach((contentType) => {
+			contentType.categories.forEach((category) => {
+				flatChannels.push(...category.channels);
+			});
+		});
+		return flatChannels;
+	}
+
+	async function switchToChannel(channel: Channel) {
+		try {
+			if (channel.stream_url) {
+				channel.authenticated_stream_url = getAuthenticatedStreamUrl(channel.stream_url);
+			}
+			selectedChannel = channel;
+			selectedChannelStore.set(channel);
+			await setSelectedChannel(playlist_id, channel.id!);
+		} catch (error) {
+			console.error('Error switching channel:', error);
+		}
+	}
+
+	async function nextChannel() {
+		const channels = getAllChannels();
+		const currentIndex = channels.findIndex((ch) => ch.id === selectedChannel?.id);
+		if (currentIndex > -1 && currentIndex < channels.length - 1) {
+			await switchToChannel(channels[currentIndex + 1]);
+		}
+	}
+
+	async function previousChannel() {
+		const channels = getAllChannels();
+		const currentIndex = channels.findIndex((ch) => ch.id === selectedChannel?.id);
+		if (currentIndex > 0) {
+			await switchToChannel(channels[currentIndex - 1]);
+		}
+	}
 
 	$effect(() => {
 		const unsubscribe = selectedChannelStore.subscribe((value) => {
@@ -47,6 +89,8 @@
 
 	$effect(() => {
 		loadInitialData();
+		// Update allChannels when channels prop changes
+		allChannels = getAllChannels();
 	});
 
 	async function loadPlaylistInfo() {
@@ -131,18 +175,28 @@
 			.sort((a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name))
 	);
 
+	// Modify handleChannelClick to use switchToChannel
 	async function handleChannelClick(channel: Channel) {
-		try {
-			if (channel.stream_url) {
-				channel.authenticated_stream_url = getAuthenticatedStreamUrl(channel.stream_url);
-			}
-			selectedChannel = channel;
-			selectedChannelStore.set(channel);
-			await setSelectedChannel(playlist_id, channel.id!);
-		} catch (error) {
-			console.error('Error selecting channel:', error);
-		}
+		await switchToChannel(channel);
 	}
+
+	// Add keyboard event listener for channel switching
+	onMount(() => {
+		const handleKeydown = async (event: KeyboardEvent) => {
+			if (event.key === 'ArrowUp') {
+				await previousChannel();
+				event.preventDefault();
+			} else if (event.key === 'ArrowDown') {
+				await nextChannel();
+				event.preventDefault();
+			}
+		};
+
+		document.addEventListener('keydown', handleKeydown);
+		return () => {
+			document.removeEventListener('keydown', handleKeydown);
+		};
+	});
 </script>
 
 <div class="space-y-4 max-h-[60vh] overflow-y-auto pr-2">

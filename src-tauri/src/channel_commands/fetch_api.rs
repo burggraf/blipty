@@ -7,15 +7,12 @@ use reqwest::{Client, ClientBuilder};
 use reqwest;
 
 use serde::Deserialize;
-use tauri::State;
-
-use crate::db::DbConnection;
-
-// Rest of your original file follows
 use serde_json::Value;
 use std::collections::HashMap;
+use tauri::State;
 
 use crate::channel_commands::extract_channels::extract_channels;
+use crate::db::DbConnection;
 use crate::models::Error;
 
 #[derive(Debug, Deserialize)]
@@ -26,7 +23,7 @@ pub struct ApiResponse<T> {
 
 #[tauri::command]
 pub async fn get_live_streams(
-    db: State<'_, DbConnection>,
+    _db: State<'_, DbConnection>,
     username: String,
     password: String,
 ) -> Result<String, String> {
@@ -47,7 +44,7 @@ pub async fn get_live_streams(
 
 #[tauri::command]
 pub async fn get_vod(
-    db: State<'_, DbConnection>,
+    _db: State<'_, DbConnection>,
     username: String,
     password: String,
 ) -> Result<String, String> {
@@ -68,7 +65,7 @@ pub async fn get_vod(
 
 #[tauri::command]
 pub async fn get_series(
-    db: State<'_, DbConnection>,
+    _db: State<'_, DbConnection>,
     username: String,
     password: String,
 ) -> Result<String, String> {

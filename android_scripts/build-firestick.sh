@@ -1,5 +1,6 @@
 #!/bin/bash
 
+source .env
 # Build optimized APK for FireStick
 echo "Building optimized APK for FireStick..."
 

@@ -1,9 +1,9 @@
 /**
  * TV Navigation Helper for D-pad focus management
  */
-export function setupTVNavigation() {
+export function setupTVNavigation(): void {
     // Get all focusable elements
-    const focusableElements = document.querySelectorAll(
+    const focusableElements = document.querySelectorAll<HTMLElement>(
         'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
     );
 
@@ -20,12 +20,12 @@ export function setupTVNavigation() {
 
     // Initialize by focusing on the first element
     if (focusableElements.length > 0) {
-        (focusableElements[0] as HTMLElement).focus();
+        focusableElements[0].focus();
     }
 }
 
 // Handle remote control key events
-document.addEventListener('keydown', (e) => {
+document.addEventListener('keydown', (e: KeyboardEvent) => {
     switch (e.key) {
         case 'ArrowLeft':
         case 'ArrowRight':

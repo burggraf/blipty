@@ -1,293 +1,112 @@
 <script lang="ts">
-	import mpegts from 'mpegts.js';
-	import videojs from 'video.js';
-	import 'video.js/dist/video-js.css';
+	import { onMount } from 'svelte';
 	import { useSidebar } from '$lib/components/ui/sidebar/context.svelte';
+	import { videoStore } from '$lib/video/store';
+	import { VideoService } from '$lib/video/service';
+	import VideoControls from './video/controls/video-controls.svelte';
+	import PlatformStyles from './video/controls/platform-styles.svelte';
+	import { getPlatform } from '$lib/utils/platform';
+	import 'video.js/dist/video-js.css';
 
 	let { src, channelName = '' } = $props<{ src: string; channelName?: string }>();
 	let videoId = $state(`video-${Math.random().toString(36).substring(2, 9)}`);
-	let player = $state<mpegts.Player | null>(null);
-	let vjsPlayer = $state<any>(null);
-	let currentSrc = $state<string | null>(null);
-	let retryCount = $state(0);
-	let maxRetries = $state(3);
-	let stallTimeout = $state<NodeJS.Timeout | null>(null);
+	let videoService = $state<VideoService | null>(null);
 	let isError = $state(false);
 	let errorMessage = $state('');
+	let lastTouchY = $state(0);
+	let volumeBeforeDrag = $state(0);
 
 	const sidebar = useSidebar();
+	const platform = getPlatform();
+	const playerState = videoStore;
 
-	$effect(() => {
-		console.log('Stream URL to load:', src);
-
-		// Initialize on mount if we have a source
-		if (src) {
-			handleSourceChange(src);
-		}
+	onMount(() => {
+		initializePlayer();
+		setupTouchHandlers();
 
 		return () => {
-			if (stallTimeout) {
-				clearTimeout(stallTimeout);
-			}
-			destroyPlayer();
+			videoService?.destroy();
+			cleanupTouchHandlers();
 		};
 	});
 
-	function destroyPlayer() {
-		console.log('Destroying players...');
-		if (player) {
-			try {
-				player.pause();
-				player.unload();
-				player.detachMediaElement();
-				player.destroy();
-				player = null;
-				console.log('mpegts player destroyed');
-			} catch (error) {
-				console.error('Error destroying mpegts player:', error);
-			}
-		}
-		if (vjsPlayer) {
-			try {
-				vjsPlayer.pause();
-				vjsPlayer.reset();
-				vjsPlayer.dispose();
-				vjsPlayer = null;
-				console.log('video.js player destroyed');
-			} catch (error) {
-				console.error('Error destroying Video.js player:', error);
-			}
-		}
-	}
-
-	// Variables already declared with $state above
-
 	async function initializePlayer() {
 		try {
-			console.log('Initializing player for video ID:', videoId);
-			const element = document.getElementById(videoId);
-			if (!element) {
-				console.error('Video element not found:', videoId);
-				isError = true;
-				errorMessage = 'Failed to initialize video player';
-				return;
+			videoService = new VideoService(videoId);
+			await videoService.initialize();
+
+			if (src) {
+				await handleSourceChange(src);
 			}
-			console.log('Video element found');
-
-			if (!mpegts.getFeatureList().mseLivePlayback) {
-				console.error('MSE live playback not supported in this browser');
-				isError = true;
-				errorMessage = 'Your browser does not support live video playback';
-				return;
-			}
-
-			// Reset error state
-			isError = false;
-			errorMessage = '';
-
-			// Wait for any previous player instances to be fully destroyed
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
-			// Initialize Video.js first
-			vjsPlayer = videojs(videoId, {
-				autoplay: true,
-				controls: true,
-				preload: 'auto',
-				fluid: true,
-				controlBar: {
-					playToggle: true,
-					volumePanel: true,
-					currentTimeDisplay: true,
-					timeDivider: true,
-					durationDisplay: true,
-					progressControl: true,
-					remainingTimeDisplay: true,
-					customControlSpacer: true,
-					fullscreenToggle: true,
-					pictureInPictureToggle: true,
-					liveDisplay: true
-				},
-				liveui: true,
-				liveTracker: true,
-				html5: {
-					vhs: {
-						overrideNative: true
-					},
-					nativeAudioTracks: false,
-					nativeVideoTracks: false
-				}
-			});
-
-			// Add the live UI class
-			vjsPlayer.addClass('vjs-live');
-			vjsPlayer.addClass('vjs-show-controls');
-
-			// Then initialize mpegts.js
-			console.log('Creating mpegts player with URL:', src);
-			player = mpegts.createPlayer({
-				type: 'flv',
-				isLive: true,
-				url: src,
-				fetchOptions: {
-					cors: true,
-					credentials: 'include'
-				},
-				configs: {
-					enableStashBuffer: false,
-					liveBufferLatencyChasing: true,
-					liveSync: true,
-					lazyLoad: false,
-					stashInitialSize: calculateBufferSize() // Dynamic buffer size based on available memory
-				}
-			} as mpegts.MediaDataSource);
-
-			// Handle errors
-			player.on(mpegts.Events.ERROR, (errorType, errorDetail) => {
-				// Set error state and message
-				isError = true;
-				errorMessage = 'This video is not currently available';
-
-				// Log error details for debugging
-				console.debug('Player error details:', {
-					type: errorType,
-					detail: errorDetail,
-					url: src
-				});
-
-				// Clean up resources
-				destroyPlayer();
-			});
-
-			// Handle stall detection
-			player.on(mpegts.Events.STATISTICS_INFO, (stats) => {
-				if (stats.speed === 0) {
-					if (!stallTimeout) {
-						stallTimeout = setTimeout(() => {
-							console.debug('Playback stalled, attempting recovery');
-							destroyPlayer();
-							initializePlayer();
-						}, Math.min(1000 * Math.pow(2, retryCount), 30000)); // Exponential backoff up to 30s
-						retryCount = Math.min(retryCount + 1, 5); // Limit to 5 retries
-					}
-				} else if (stallTimeout) {
-					clearTimeout(stallTimeout);
-					stallTimeout = null;
-					retryCount = 0; // Reset retry count on successful playback
-				}
-			});
-
-			// Attach and start playback
-			player.attachMediaElement(vjsPlayer.tech().el());
-			player.load();
-			player.play();
 		} catch (error) {
 			console.error('Error initializing player:', error);
 			isError = true;
-			errorMessage = 'Failed to initialize video player';
+			errorMessage = error instanceof Error ? error.message : 'Failed to initialize video player';
 		}
-	}
-
-	function calculateBufferSize() {
-		// navigator.deviceMemory returns memory in GB (2, 4, 8, etc.)
-		const memoryGB = navigator.deviceMemory || 4; // Default to 4GB if unavailable
-		// Allocate 2MB per GB of memory, with a minimum of 4MB and maximum of 64MB
-		const memsize = Math.min(Math.max(memoryGB * 2 * 1024 * 1024, 4 * 1024 * 1024), 64 * 1024 * 1024);
-		console.log('Allocated buffer size:', memsize);
-		return memsize;
 	}
 
 	async function handleSourceChange(newSrc: string) {
-		if (newSrc === currentSrc) return;
+		if (!videoService) return;
 
-		console.log('Source changed from', currentSrc, 'to', newSrc);
-		currentSrc = newSrc;
-		retryCount = 0;
-
-		if (stallTimeout) {
-			clearTimeout(stallTimeout);
-			stallTimeout = null;
-		}
-
-		// Ensure complete cleanup
-		destroyPlayer();
-
-		// Wait for DOM to be ready
-		await new Promise((resolve) => setTimeout(resolve, 100));
-
-		// Create a new video element to ensure clean state
-		let wrapper = document.querySelector('.video-wrapper');
-		let attempts = 0;
-		const maxAttempts = 5;
-
-		// Try to find the wrapper
-		while (!wrapper && attempts < maxAttempts) {
-			await new Promise((resolve) => setTimeout(resolve, 100));
-			wrapper = document.querySelector('.video-wrapper');
-			attempts++;
-			console.log(`Attempting to find video wrapper (${attempts}/${maxAttempts})`);
-		}
-
-		if (!wrapper) {
-			console.error('Video wrapper not found after multiple attempts');
-			return;
-		}
-
-		// Remove old video if it exists
-		const oldVideo = document.getElementById(videoId);
-		if (oldVideo) {
-			console.log('Removing old video element');
-			wrapper.removeChild(oldVideo);
-		}
-
-		// Generate a new unique ID for the video element
-		videoId = `video-${Math.random().toString(36).substr(2, 9)}`;
-		console.log('Creating new video element with ID:', videoId);
-
-		// Create new video element
-		const newVideo = document.createElement('video');
-		newVideo.id = videoId;
-		newVideo.className =
-			'video-js vjs-big-play-button-centered vjs-fluid vjs-default-skin vjs-controls-enabled';
-		newVideo.setAttribute('playsinline', '');
-		newVideo.setAttribute('controls', '');
-
-		// Add track and fallback content
-		const track = document.createElement('track');
-		track.kind = 'captions';
-		track.label = 'Captions';
-		newVideo.appendChild(track);
-
-		const fallback = document.createElement('p');
-		fallback.className = 'vjs-no-js';
-		fallback.textContent =
-			'To view this video please enable JavaScript, and consider upgrading to a web browser that supports HTML5 video';
-		newVideo.appendChild(fallback);
-
-		// Add to DOM
-		wrapper.appendChild(newVideo);
-		console.log('New video element added to DOM');
-
-		// Wait for the video element to be properly added to the DOM
-		await new Promise((resolve) => setTimeout(resolve, 100));
-
-		// Verify the element exists and initialize
-		const element = document.getElementById(videoId);
-		if (element) {
-			console.log('Starting player initialization...');
-			await initializePlayer();
-		} else {
-			console.error('Video element not found after creation');
+		try {
+			isError = false;
+			errorMessage = '';
+			await videoService.load(newSrc);
+		} catch (error) {
+			console.error('Error loading source:', error);
+			isError = true;
+			errorMessage = error instanceof Error ? error.message : 'Failed to load video';
 		}
 	}
 
+	function setupTouchHandlers() {
+		if (!platform.hasTouch) return;
+
+		const videoElement = document.getElementById(videoId);
+		if (!videoElement) return;
+
+		videoElement.addEventListener('touchstart', handleTouchStart);
+		videoElement.addEventListener('touchmove', handleTouchMove);
+		videoElement.addEventListener('touchend', handleTouchEnd);
+	}
+
+	function cleanupTouchHandlers() {
+		const videoElement = document.getElementById(videoId);
+		if (!videoElement) return;
+
+		videoElement.removeEventListener('touchstart', handleTouchStart);
+		videoElement.removeEventListener('touchmove', handleTouchMove);
+		videoElement.removeEventListener('touchend', handleTouchEnd);
+	}
+
+	function handleTouchStart(event: TouchEvent) {
+		lastTouchY = event.touches[0].clientY;
+		volumeBeforeDrag = videoStore.getState().volume;
+	}
+
+	function handleTouchMove(event: TouchEvent) {
+		const currentY = event.touches[0].clientY;
+		const deltaY = lastTouchY - currentY;
+		const volumeChange = (deltaY / window.innerHeight) * 2;
+		const newVolume = Math.max(0, Math.min(1, volumeBeforeDrag + volumeChange));
+
+		videoStore.setVolume(newVolume);
+	}
+
+	function handleTouchEnd() {
+		lastTouchY = 0;
+		volumeBeforeDrag = 0;
+	}
+
 	$effect(() => {
-		if (src !== currentSrc) {
+		if (src && videoService) {
 			handleSourceChange(src);
 		}
 	});
 </script>
 
 <div class={`video-wrapper ${sidebar.open ? 'sidebaropen' : 'sidebarclosed'}`}>
+	<PlatformStyles />
 	{#if isError}
 		<div class="error-message">
 			<p>{errorMessage}</p>
@@ -298,9 +117,8 @@
 	{/if}
 	<video
 		id={videoId}
-		class="video-js vjs-big-play-button-centered vjs-fluid vjs-default-skin vjs-controls-enabled"
+		class="video-js vjs-big-play-button-centered vjs-fluid vjs-default-skin"
 		playsinline
-		controls
 	>
 		<track kind="captions" src="" label="Captions" />
 		<p class="vjs-no-js">
@@ -308,30 +126,31 @@
 			supports HTML5 video
 		</p>
 	</video>
+	<VideoControls />
 </div>
 
 <style>
 	.video-wrapper {
 		position: absolute;
 		top: 2rem;
-		/* left: 24rem;*/
 		right: 0;
 		bottom: 0;
-
 		background: #000;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 	}
+
 	.sidebaropen {
 		left: 24rem;
 	}
+
 	.sidebarclosed {
 		left: 0;
 	}
 
 	:global(.video-js) {
-		width: 100% /*calc(100% - 24rem)*/ !important;
+		width: 100% !important;
 		height: 100% !important;
 		aspect-ratio: 16 / 9;
 		max-height: 100vh;
@@ -370,17 +189,9 @@
 		color: #a1a1aa;
 	}
 
-	.retry-button {
-		background: #4f46e5;
-		color: white;
-		border: none;
-		padding: 0.5rem 1rem;
-		border-radius: 0.25rem;
-		cursor: pointer;
-		transition: background-color 0.2s;
-	}
-
-	.retry-button:hover {
-		background: #4338ca;
+	@media (max-width: 640px) {
+		.sidebaropen {
+			left: 0;
+		}
 	}
 </style>
