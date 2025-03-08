@@ -17,6 +17,6 @@ pub async fn get_db_path(app_handle: tauri::AppHandle) -> Result<String, String>
 }
 
 #[tauri::command]
-pub async fn initialize_database(db: State<'_, DbConnection>) -> Result<(), String> {
+pub async fn initialize_database(_db: State<'_, DbConnection>) -> Result<(), String> {
     Ok(()) // Database is already initialized in setup
 }

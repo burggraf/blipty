@@ -13,16 +13,19 @@ use tauri::State;
 use crate::{db::DbConnection, models::Error};
 use crate::channel_commands::extract_channels::extract_channels;
 
+// Add allow(dead_code) attribute to the struct to suppress unused fields warning
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 pub struct ApiResponse<T> {
-    _result: String,  // Prefixed with _ to indicate intentionally unused
-    _data: T,        // Prefixed with _ to indicate intentionally unused
+    result: String,
+    data: T,
 }
 
+// Add allow(unused) attribute to the functions to suppress unused function warnings
 #[tauri::command]
-#[allow(dead_code)]  // Since these functions might be used by the frontend
+#[allow(dead_code)]
 pub async fn get_live_streams(
-    _db: State<'_, DbConnection>,
+    _db: State<'_, DbConnection>,  // Renamed from db to _db
     username: String,
     password: String,
 ) -> Result<String, String> {
@@ -44,7 +47,7 @@ pub async fn get_live_streams(
 #[tauri::command]
 #[allow(dead_code)]
 pub async fn get_vod(
-    _db: State<'_, DbConnection>,
+    _db: State<'_, DbConnection>,  // Renamed from db to _db
     username: String,
     password: String,
 ) -> Result<String, String> {
@@ -66,7 +69,7 @@ pub async fn get_vod(
 #[tauri::command]
 #[allow(dead_code)]
 pub async fn get_series(
-    _db: State<'_, DbConnection>,
+    _db: State<'_, DbConnection>,  // Renamed from db to _db
     username: String,
     password: String,
 ) -> Result<String, String> {

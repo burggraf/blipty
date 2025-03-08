@@ -19,14 +19,16 @@ use crate::channel_commands::extract_channels::extract_channels;
 use crate::models::Error;
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 pub struct ApiResponse<T> {
     result: String,
     data: T,
 }
 
 #[tauri::command]
+#[allow(dead_code)]
 pub async fn get_live_streams(
-    db: State<'_, DbConnection>,
+    _db: State<'_, DbConnection>, // Renamed from db to _db
     username: String,
     password: String,
 ) -> Result<String, String> {
@@ -46,8 +48,9 @@ pub async fn get_live_streams(
 }
 
 #[tauri::command]
+#[allow(dead_code)]
 pub async fn get_vod(
-    db: State<'_, DbConnection>,
+    _db: State<'_, DbConnection>, // Renamed from db to _db
     username: String,
     password: String,
 ) -> Result<String, String> {
@@ -67,8 +70,9 @@ pub async fn get_vod(
 }
 
 #[tauri::command]
+#[allow(dead_code)]
 pub async fn get_series(
-    db: State<'_, DbConnection>,
+    _db: State<'_, DbConnection>, // Renamed from db to _db
     username: String,
     password: String,
 ) -> Result<String, String> {
