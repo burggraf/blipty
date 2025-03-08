@@ -11,7 +11,7 @@
 	let currentSrc = $state<string | null>(null);
 	let retryCount = $state(0);
 	let maxRetries = $state(3);
-	let stallTimeout = $state<NodeJS.Timeout | null>(null);
+	let stallTimeout = $state<ReturnType<typeof setTimeout> | null>(null);
 	let isError = $state(false);
 	let errorMessage = $state('');
 
@@ -162,11 +162,14 @@
 			player.on(mpegts.Events.STATISTICS_INFO, (stats) => {
 				if (stats.speed === 0) {
 					if (!stallTimeout) {
-						stallTimeout = setTimeout(() => {
-							console.debug('Playback stalled, attempting recovery');
-							destroyPlayer();
-							initializePlayer();
-						}, Math.min(1000 * Math.pow(2, retryCount), 30000)); // Exponential backoff up to 30s
+						stallTimeout = setTimeout(
+							() => {
+								console.debug('Playback stalled, attempting recovery');
+								destroyPlayer();
+								initializePlayer();
+							},
+							Math.min(1000 * Math.pow(2, retryCount), 30000)
+						); // Exponential backoff up to 30s
 						retryCount = Math.min(retryCount + 1, 5); // Limit to 5 retries
 					}
 				} else if (stallTimeout) {
@@ -188,10 +191,13 @@
 	}
 
 	function calculateBufferSize() {
-		// navigator.deviceMemory returns memory in GB (2, 4, 8, etc.)
-		const memoryGB = navigator.deviceMemory || 4; // Default to 4GB if unavailable
+		// Use a type assertion since deviceMemory is not in all browser types yet
+		const memoryGB = (navigator as any).deviceMemory || 4; // Default to 4GB if unavailable
 		// Allocate 2MB per GB of memory, with a minimum of 4MB and maximum of 64MB
-		const memsize = Math.min(Math.max(memoryGB * 2 * 1024 * 1024, 4 * 1024 * 1024), 64 * 1024 * 1024);
+		const memsize = Math.min(
+			Math.max(memoryGB * 2 * 1024 * 1024, 4 * 1024 * 1024),
+			64 * 1024 * 1024
+		);
 		console.log('Allocated buffer size:', memsize);
 		return memsize;
 	}
@@ -208,27 +214,57 @@
 			stallTimeout = null;
 		}
 
-		// Ensure complete cleanup
+		// If we have existing players, try to reuse them
+		if (player && vjsPlayer) {
+			try {
+				// Stop current playback
+				player.pause();
+				player.unload();
+
+				// Update the source
+				player = mpegts.createPlayer({
+					type: 'flv',
+					isLive: true,
+					url: newSrc,
+					fetchOptions: {
+						cors: true,
+						credentials: 'include'
+					},
+					configs: {
+						enableStashBuffer: false,
+						liveBufferLatencyChasing: true,
+						liveSync: true,
+						lazyLoad: false,
+						stashInitialSize: calculateBufferSize()
+					}
+				} as mpegts.MediaDataSource);
+
+				// Reattach and start playback
+				player.attachMediaElement(vjsPlayer.tech().el());
+				player.load();
+				player.play();
+
+				// Reset error state
+				isError = false;
+				errorMessage = '';
+
+				return;
+			} catch (error) {
+				console.error('Error reusing player, falling back to full reload:', error);
+				destroyPlayer();
+			}
+		}
+
+		// Fall back to full player initialization if reuse failed
 		destroyPlayer();
 
 		// Wait for DOM to be ready
 		await new Promise((resolve) => setTimeout(resolve, 100));
 
-		// Create a new video element to ensure clean state
-		let wrapper = document.querySelector('.video-wrapper');
-		let attempts = 0;
-		const maxAttempts = 5;
-
-		// Try to find the wrapper
-		while (!wrapper && attempts < maxAttempts) {
-			await new Promise((resolve) => setTimeout(resolve, 100));
-			wrapper = document.querySelector('.video-wrapper');
-			attempts++;
-			console.log(`Attempting to find video wrapper (${attempts}/${maxAttempts})`);
-		}
-
+		// Get existing video wrapper
+		const wrapper = document.querySelector('.video-wrapper');
 		if (!wrapper) {
-			console.error('Video wrapper not found after multiple attempts');
+			console.error('Video wrapper not found');
 			return;
 		}
 
