@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import * as Accordion from '$lib/components/ui/accordion';
 	import type { Channel, Playlist } from '$lib/commands';
 	import {
@@ -6,13 +7,16 @@
 		getSelectedChannel,
 		getPlaylists,
 		deletePlaylist,
-		fetchChannels
+		fetchChannels,
+		addToFavorites,
+		removeFromFavorites,
+		getFavorites
 	} from '$lib/commands';
 	import { selectedPlaylist, selectedChannel as selectedChannelStore } from '$lib/stores';
 	import VideoPlayer from './video-player.svelte';
 	import { buttonVariants } from '$lib/components/ui/button/button.svelte';
 	import { cn } from '$lib/utils';
-	import { Pencil, Trash2, PlusCircle, Loader2 } from 'lucide-svelte';
+	import { Pencil, Trash2, PlusCircle, Loader2, Heart } from 'lucide-svelte';
 
 	interface CategoryGroup {
 		id: string;
@@ -47,12 +51,23 @@
 	let loadingProviders = $state<Set<number>>(new Set());
 	let expandedContentTypes = $state<Set<string>>(new Set());
 	let expandedCategories = $state<Set<string>>(new Set());
+	let favorites = $state<Set<string>>(new Set());
 
 	$effect(() => {
 		const unsubscribe = selectedChannelStore.subscribe((value) => {
 			storeValue = value;
 		});
 		return unsubscribe;
+	});
+
+	onMount(async () => {
+		// Load favorites
+		try {
+			const favList = await getFavorites();
+			favorites = new Set(favList.map(([_, streamId]) => streamId));
+		} catch (error) {
+			console.error('Error loading favorites:', error);
+		}
 	});
 
 	async function loadProviderChannels(provider: Playlist) {
@@ -202,6 +217,22 @@
 			onAddProvider();
 		}
 	}
+
+	async function toggleFavorite(event: Event, channel: Channel) {
+		event.stopPropagation();
+		try {
+			if (favorites.has(channel.stream_id)) {
+				await removeFromFavorites(channel.playlist_id, channel.stream_id);
+				favorites.delete(channel.stream_id);
+			} else {
+				await addToFavorites(channel.playlist_id, channel.stream_id, channel.stream_type);
+				favorites.add(channel.stream_id);
+			}
+			favorites = new Set(favorites); // Trigger reactivity
+		} catch (error) {
+			console.error('Error toggling favorite:', error);
+		}
+	}
 </script>
 
 <div class="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
@@ -275,15 +306,25 @@
 														{#if expandedCategories.has(`${provider.id}-${contentType.name}-${category.id}`)}
 															<div class="space-y-1 pl-8 mt-1">
 																{#each category.channels as channel}
-																	<button
-																		class="w-full text-left p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 flex items-center space-x-2 {selectedChannel?.id ===
+																	<div
+																		class="w-full text-left p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 flex items-center justify-between cursor-pointer {selectedChannel?.id ===
 																		channel.id
 																			? 'bg-indigo-100 dark:bg-indigo-900/30'
 																			: ''}"
 																		onclick={() => handleChannelClick(channel, provider)}
 																	>
 																		<span class="truncate">{channel.name}</span>
-																	</button>
+																		<button
+																			class="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full"
+																			onclick={(e) => toggleFavorite(e, channel)}
+																		>
+																			<Heart
+																				class="h-4 w-4 {favorites.has(channel.stream_id)
+																					? 'fill-current text-red-500'
+																					: 'text-gray-500'}"
+																			/>
+																		</button>
+																	</div>
 																{/each}
 															</div>
 														{/if}

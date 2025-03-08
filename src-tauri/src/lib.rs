@@ -70,7 +70,10 @@ pub fn run() {
             channel_commands::import_commands::fetch_and_populate_data,
             channel_commands::import_commands::process_m3u_content,
             commands::get_db_path,
-            commands::initialize_database
+            commands::initialize_database,
+            commands::add_to_favorites,
+            commands::remove_from_favorites,
+            commands::get_favorites
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

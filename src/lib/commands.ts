@@ -122,3 +122,15 @@ export async function setSelectedChannel(playlist_id: number, channel_id: number
 export async function getSelectedChannel(playlist_id: number): Promise<Channel | null> {
     return await invoke('get_selected_channel');
 }
+
+export async function addToFavorites(playlistId: number, streamId: string, contentType: string): Promise<void> {
+    return await invoke('add_to_favorites', { playlistId, streamId, contentType });
+}
+
+export async function removeFromFavorites(playlistId: number, streamId: string): Promise<void> {
+    return await invoke('remove_from_favorites', { playlistId, streamId });
+}
+
+export async function getFavorites(): Promise<Array<[number, string]>> {
+    return await invoke('get_favorites');
+}
