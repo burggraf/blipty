@@ -18,24 +18,10 @@
 	let error = $state('');
 	let loading = $state(false);
 	let editingProvider = $state<Playlist | null>(null);
-	let currentProvider = $state<Playlist | null>(null);
-	let currentChannels = $state<Channel[]>([]);
-	let allProviderChannels = $state<Map<Playlist, Channel[]>>(new Map());
-	let showAccordion = $state<boolean>(true); // Changed to true by default
 	let showAddForm = $state<boolean>(false);
-	const loadingProviders = writable(new Set<number>());
-	let loadingSet = $state<Set<number>>(new Set());
-
-	$effect(() => {
-		loadingSet = $loadingProviders;
-	});
 
 	onMount(async () => {
 		await loadProviders();
-		// Automatically load all provider channels after loading providers
-		if (providers.length > 0) {
-			await loadAllProviderChannels();
-		}
 	});
 
 	async function loadProviders() {
@@ -51,78 +37,6 @@
 		}
 	}
 
-	async function loadAllProviderChannels() {
-		if (providers.length === 0) {
-			return;
-		}
-
-		const providerMap = new Map<Playlist, Channel[]>();
-		showAccordion = false;
-		loading = true;
-		error = '';
-
-		try {
-			// Load channels for each provider
-			for (const provider of providers) {
-				if (provider.id === undefined) continue;
-
-				loadingProviders.update((set) => {
-					set.add(provider.id!);
-					return set;
-				});
-
-				try {
-					const channels = await fetchChannels(provider.id);
-					console.log(`Loaded ${channels.length} channels for ${provider.name}`);
-					providerMap.set(provider, channels);
-				} catch (e: any) {
-					console.error(`Error loading channels for ${provider.name}:`, e);
-					// Continue with other providers even if one fails
-				} finally {
-					loadingProviders.update((set) => {
-						set.delete(provider.id!);
-						return set;
-					});
-				}
-			}
-
-			allProviderChannels = providerMap;
-			showAccordion = true;
-		} catch (e: any) {
-			error = e.message || 'Failed to load channel data';
-			console.error('Error loading all provider data:', e);
-		} finally {
-			loading = false;
-		}
-	}
-
-	async function handleProviderClick(provider: Playlist) {
-		if ($loadingProviders.has(provider.id!)) return;
-
-		try {
-			loadingProviders.update((set) => {
-				set.add(provider.id!);
-				return set;
-			});
-			error = '';
-			console.log(`Fetching channels for provider: ${provider.name} (ID: ${provider.id})`);
-
-			const results = await fetchChannels(provider.id!);
-			console.log('Channel results:', results);
-			currentProvider = provider;
-			currentChannels = results;
-			selectedPlaylist.set(provider);
-		} catch (e: any) {
-			console.error('Failed to fetch channels:', e);
-			error = e.message || 'Failed to fetch channels';
-		} finally {
-			loadingProviders.update((set) => {
-				set.delete(provider.id!);
-				return set;
-			});
-		}
-	}
-
 	function handleEdit(provider: Playlist) {
 		editingProvider = provider;
 	}
@@ -135,19 +49,6 @@
 				.then(() => {
 					console.log('Delete successful');
 					providers = providers.filter((p) => p.id !== provider.id);
-					if (currentProvider?.id === provider.id) {
-						currentProvider = null;
-						currentChannels = [];
-					}
-
-					// Also update the all providers map if needed
-					if (showAccordion && allProviderChannels.has(provider)) {
-						allProviderChannels.delete(provider);
-						// Force UI update
-						allProviderChannels = new Map(allProviderChannels);
-					}
-
-					console.log('Updated providers list:', providers);
 				})
 				.catch((e) => {
 					console.error('Delete failed:', e);
@@ -162,27 +63,11 @@
 	function handleEditSave() {
 		editingProvider = null;
 		// Refresh the providers list
-		loadProviders().then(() => {
-			// If we're showing the accordion, refresh provider data
-			if (showAccordion) {
-				loadAllProviderChannels();
-			}
-		});
+		loadProviders();
 	}
 
 	function handleEditCancel() {
 		editingProvider = null;
-	}
-
-	function handleBackToProviders() {
-		currentProvider = null;
-		currentChannels = [];
-		showAccordion = false;
-		showAddForm = false;
-	}
-
-	function handleViewAllProviders() {
-		loadAllProviderChannels();
 	}
 
 	function handleAddProviderClick() {
@@ -191,10 +76,8 @@
 
 	function handleProviderAdded() {
 		showAddForm = false;
-		// After adding a provider, reload providers and show in accordion
-		loadProviders().then(() => {
-			loadAllProviderChannels();
-		});
+		// Refresh the providers list
+		loadProviders();
 	}
 </script>
 
@@ -227,7 +110,6 @@
 										class={cn(buttonVariants({ variant: 'outline', size: 'icon' }))}
 										onclick={() => {
 											showAddForm = false;
-											showAccordion = true;
 										}}
 									>
 										<ArrowLeft class="h-4 w-4" />
@@ -247,10 +129,7 @@
 								<Card.Header class="flex items-center space-x-4">
 									<button
 										class={cn(buttonVariants({ variant: 'outline', size: 'icon' }))}
-										onclick={() => {
-											editingProvider = null;
-											showAccordion = true;
-										}}
+										onclick={handleEditCancel}
 									>
 										<ArrowLeft class="h-4 w-4" />
 									</button>
@@ -281,7 +160,7 @@
 								</Card.Header>
 								<Card.Content class="p-6">
 									<ChannelList
-										providers={allProviderChannels}
+										providersList={providers}
 										onEditProvider={handleEdit}
 										onDeleteProvider={handleDelete}
 										onAddProvider={handleAddProviderClick}

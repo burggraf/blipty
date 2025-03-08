@@ -5,15 +5,17 @@
 		setSelectedChannel,
 		getSelectedChannel,
 		getPlaylists,
-		deletePlaylist
+		deletePlaylist,
+		fetchChannels
 	} from '$lib/commands';
 	import { selectedPlaylist, selectedChannel as selectedChannelStore } from '$lib/stores';
 	import VideoPlayer from './video-player.svelte';
 	import { buttonVariants } from '$lib/components/ui/button/button.svelte';
 	import { cn } from '$lib/utils';
-	import { Pencil, Trash2, PlusCircle } from 'lucide-svelte';
+	import { Pencil, Trash2, PlusCircle, Loader2 } from 'lucide-svelte';
 
 	interface CategoryGroup {
+		id: string;
 		name: string;
 		channels: Channel[];
 	}
@@ -29,21 +31,22 @@
 		contentTypes: ContentTypeGroup[];
 	}
 
-	// Accept either channels for a single provider or a providers map
-	const { channels, playlist_id, providers, onEditProvider, onDeleteProvider, onAddProvider } =
-		$props<{
-			channels?: Channel[];
-			playlist_id?: number;
-			providers?: Map<Playlist, Channel[]>;
-			onEditProvider?: (provider: Playlist) => void;
-			onDeleteProvider?: (provider: Playlist) => void;
-			onAddProvider?: () => void;
-		}>();
+	const { playlist_id, onEditProvider, onDeleteProvider, onAddProvider, providersList } = $props<{
+		playlist_id?: number;
+		onEditProvider?: (provider: Playlist) => void;
+		onDeleteProvider?: (provider: Playlist) => void;
+		onAddProvider?: () => void;
+		providersList: Playlist[];
+	}>();
 
 	let currentPlaylist = $state<Playlist | null>(null);
 	let selectedChannel = $state<Channel | null>(null);
 	let storeValue = $state<Channel | null>(null);
 	let allPlaylists = $state<Playlist[]>([]);
+	let loadedProviders = $state<Map<number, Channel[]>>(new Map());
+	let loadingProviders = $state<Set<number>>(new Set());
+	let expandedContentTypes = $state<Set<string>>(new Set());
+	let expandedCategories = $state<Set<string>>(new Set());
 
 	$effect(() => {
 		const unsubscribe = selectedChannelStore.subscribe((value) => {
@@ -52,31 +55,76 @@
 		return unsubscribe;
 	});
 
-	function loadInitialData() {
-		if (playlist_id) {
-			loadPlaylistInfo()
-				.then(() => {
-					loadSelectedChannel().catch((error) => {
-						console.error('Error loading selected channel:', error);
-					});
-				})
-				.catch((error) => {
-					console.error('Error loading playlist info:', error);
-				});
+	async function loadProviderChannels(provider: Playlist) {
+		if (loadedProviders.has(provider.id!) || loadingProviders.has(provider.id!)) {
+			return;
+		}
+
+		try {
+			loadingProviders.add(provider.id!);
+			const channels = await fetchChannels(provider.id!);
+			loadedProviders.set(provider.id!, channels);
+			loadedProviders = new Map(loadedProviders);
+		} catch (error) {
+			console.error(`Error loading channels for provider ${provider.name}:`, error);
+		} finally {
+			loadingProviders.delete(provider.id!);
+			loadingProviders = new Set(loadingProviders);
 		}
 	}
 
-	$effect(() => {
-		loadInitialData();
-	});
+	function getProviderChannels(providerId: number): Channel[] {
+		return loadedProviders.get(providerId) || [];
+	}
 
-	async function loadPlaylistInfo() {
+	function processProviderChannels(channelsList: Channel[]): ContentTypeGroup[] {
+		const channelsByContentType = channelsList.reduce(
+			(acc: Map<string, Map<string, CategoryGroup>>, channel: Channel) => {
+				const contentType = channel.stream_type || 'live';
+				const categoryId = channel.category_id || 'uncategorized';
+
+				if (!acc.has(contentType)) {
+					acc.set(contentType, new Map());
+				}
+				const contentTypeMap = acc.get(contentType)!;
+
+				if (!contentTypeMap.has(categoryId)) {
+					contentTypeMap.set(categoryId, {
+						id: categoryId,
+						name: channel.category_name || 'Uncategorized',
+						channels: []
+					});
+				}
+
+				contentTypeMap.get(categoryId)!.channels.push(channel);
+				return acc;
+			},
+			new Map<string, Map<string, CategoryGroup>>()
+		);
+
+		return Array.from(channelsByContentType.entries())
+			.map(([contentType, categories]) => ({
+				name: contentType.charAt(0).toUpperCase() + contentType.slice(1),
+				categories: Array.from(categories.values())
+					.sort((a, b) => a.name.localeCompare(b.name))
+					.map((category) => ({
+						...category,
+						channels: category.channels.sort((a, b) => a.name.localeCompare(b.name))
+					}))
+			}))
+			.sort((a, b) => a.name.localeCompare(b.name));
+	}
+
+	async function handleChannelClick(channel: Channel, playlist: Playlist) {
 		try {
-			const playlists = await getPlaylists();
-			allPlaylists = playlists;
-			currentPlaylist = playlists.find((p) => p.id === playlist_id) || null;
+			if (channel.stream_url) {
+				channel.authenticated_stream_url = getAuthenticatedStreamUrl(channel.stream_url, playlist);
+			}
+			selectedChannel = channel;
+			selectedChannelStore.set(channel);
+			await setSelectedChannel(playlist.id!, channel.id!);
 		} catch (error) {
-			console.error('Error loading playlist info:', error);
+			console.error('Error selecting channel:', error);
 		}
 	}
 
@@ -95,118 +143,56 @@
 		}
 	}
 
-	async function loadSelectedChannel() {
-		try {
-			if (!playlist_id) return;
-
-			const channel = await getSelectedChannel(playlist_id);
-			if (channel) {
-				selectedChannel = channel;
-				selectedChannelStore.set(channel);
-			}
-		} catch (error) {
-			console.error('Error loading selected channel:', error);
-		}
-	}
-
-	// Process channels for one provider
-	function processProviderChannels(channelsList: Channel[]): ContentTypeGroup[] {
-		// Group channels by content_type and then by category
-		const channelsByContentType = channelsList.reduce(
-			(acc: Map<string, Map<string, CategoryGroup>>, channel: Channel) => {
-				const contentType = channel.stream_type || 'live';
-				const categoryId = channel.category_id || 'uncategorized';
-
-				// Get or create the content type group
-				if (!acc.has(contentType)) {
-					acc.set(contentType, new Map());
-				}
-				const contentTypeMap = acc.get(contentType)!;
-
-				// Get or create the category in the content type group
-				if (!contentTypeMap.has(categoryId)) {
-					contentTypeMap.set(categoryId, {
-						name: channel.category_name || 'Uncategorized',
-						channels: []
-					});
-				}
-
-				// Add the channel to its category
-				contentTypeMap.get(categoryId)!.channels.push(channel);
-				return acc;
-			},
-			new Map<string, Map<string, CategoryGroup>>()
-		);
-
-		// Convert to array and sort
-		return (Array.from(channelsByContentType.entries()) as [string, Map<string, CategoryGroup>][])
-			.map(([contentType, categories]: [string, Map<string, CategoryGroup>]) => ({
-				name: contentType.charAt(0).toUpperCase() + contentType.slice(1),
-				categories: Array.from(categories.entries())
-					.map(([id, category]: [string, CategoryGroup]) => ({
-						id,
-						name: category.name,
-						channels: category.channels.sort((a: Channel, b: Channel) =>
-							a.name.localeCompare(b.name)
-						)
-					}))
-					.sort((a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name))
-			}))
-			.sort((a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name));
-	}
-
-	// For single provider mode
-	let providerContentTypes = $derived(channels ? processProviderChannels(channels) : []);
-
-	// For multi-provider mode
-	let providerGroups = $derived(
-		providers
-			? Array.from(providers.entries()).map(([provider, providerChannels]) => ({
-					id: provider.id!,
-					name: provider.name,
-					contentTypes: processProviderChannels(providerChannels)
-				}))
-			: []
-	);
-
-	async function handleChannelClick(channel: Channel, playlist: Playlist) {
-		try {
-			if (channel.stream_url) {
-				channel.authenticated_stream_url = getAuthenticatedStreamUrl(channel.stream_url, playlist);
-			}
-			selectedChannel = channel;
-			selectedChannelStore.set(channel);
-			await setSelectedChannel(playlist.id!, channel.id!);
-		} catch (error) {
-			console.error('Error selecting channel:', error);
-		}
-	}
-
 	function handleEdit(event: Event, provider: Playlist) {
-		event.stopPropagation(); // Prevent accordion from toggling
+		event.stopPropagation();
 		if (onEditProvider) {
 			onEditProvider(provider);
 		}
 	}
 
 	function handleDelete(event: Event, provider: Playlist) {
-		event.stopPropagation(); // Prevent accordion from toggling
+		event.stopPropagation();
 		if (onDeleteProvider) {
 			onDeleteProvider(provider);
 		} else {
-			// Default delete implementation if no callback is provided
 			if (confirm(`Are you sure you want to delete provider "${provider.name}"?`)) {
 				deletePlaylist(provider.id!)
-					.then(() => {
-						// If successful, refresh the entire view
-						window.location.reload();
-					})
+					.then(() => window.location.reload())
 					.catch((error) => {
 						console.error('Error deleting provider:', error);
 						alert('Failed to delete provider: ' + error.message);
 					});
 			}
 		}
+	}
+
+	async function handleAccordionChange(value: string | undefined) {
+		if (!value) return;
+
+		const provider = providersList.find((p: Playlist) => p.id!.toString() === value);
+		if (provider) {
+			await loadProviderChannels(provider);
+		}
+	}
+
+	function handleContentTypeClick(providerId: number, contentTypeName: string) {
+		const key = `${providerId}-${contentTypeName}`;
+		if (expandedContentTypes.has(key)) {
+			expandedContentTypes.delete(key);
+		} else {
+			expandedContentTypes.add(key);
+		}
+		expandedContentTypes = new Set(expandedContentTypes);
+	}
+
+	function handleCategoryClick(providerId: number, contentTypeName: string, categoryId: string) {
+		const key = `${providerId}-${contentTypeName}-${categoryId}`;
+		if (expandedCategories.has(key)) {
+			expandedCategories.delete(key);
+		} else {
+			expandedCategories.add(key);
+		}
+		expandedCategories = new Set(expandedCategories);
 	}
 
 	function handleAddProvider(event: Event) {
@@ -219,8 +205,7 @@
 </script>
 
 <div class="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-	{#if providers}
-		<!-- Add Provider Button -->
+	{#if providersList}
 		{#if onAddProvider}
 			<button
 				class={cn(
@@ -234,9 +219,8 @@
 			</button>
 		{/if}
 
-		<!-- Multi-provider mode -->
-		{#each providerGroups as provider}
-			<Accordion.Root type="single">
+		<Accordion.Root type="single" onValueChange={handleAccordionChange}>
+			{#each providersList as provider}
 				<Accordion.Item value={provider.id.toString()}>
 					<div class="flex items-center justify-between">
 						<Accordion.Trigger class="text-xl font-bold flex-1">
@@ -247,24 +231,14 @@
 								<button
 									class={cn(buttonVariants({ variant: 'outline', size: 'icon' }))}
 									title="Edit {provider.name}"
-									onclick={(e) => {
-										const providerObj = Array.from(providers.keys()).find(
-											(p) => p.id === provider.id
-										);
-										if (providerObj) handleEdit(e, providerObj);
-									}}
+									onclick={(e) => handleEdit(e, provider)}
 								>
 									<Pencil class="h-4 w-4" />
 								</button>
 								<button
 									class={cn(buttonVariants({ variant: 'destructive', size: 'icon' }))}
 									title="Delete {provider.name}"
-									onclick={(e) => {
-										const providerObj = Array.from(providers.keys()).find(
-											(p) => p.id === provider.id
-										);
-										if (providerObj) handleDelete(e, providerObj);
-									}}
+									onclick={(e) => handleDelete(e, provider)}
 								>
 									<Trash2 class="h-4 w-4" />
 								</button>
@@ -273,101 +247,63 @@
 					</div>
 					<Accordion.Content>
 						<div class="space-y-2 mt-2">
-							<!-- Content Type level -->
-							{#each provider.contentTypes as contentType}
-								<Accordion.Root type="single">
-									<Accordion.Item value={`${provider.id}-${contentType.name}`}>
-										<Accordion.Trigger class="text-lg font-medium pl-4">
+							{#if loadingProviders.has(provider.id!)}
+								<div class="flex items-center justify-center p-4">
+									<Loader2 class="h-6 w-6 animate-spin" />
+									<span class="ml-2">Loading channels...</span>
+								</div>
+							{:else if loadedProviders.has(provider.id!)}
+								{#each processProviderChannels(getProviderChannels(provider.id!)) as contentType}
+									<div class="mb-4">
+										<button
+											class="w-full text-left text-lg font-medium pl-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+											onclick={() => handleContentTypeClick(provider.id!, contentType.name)}
+										>
 											{contentType.name}
-										</Accordion.Trigger>
-										<Accordion.Content>
-											<div class="space-y-2 mt-2 pl-4">
-												<!-- Category level -->
+										</button>
+										{#if expandedContentTypes.has(`${provider.id}-${contentType.name}`)}
+											<div class="mt-2 space-y-2">
 												{#each contentType.categories as category}
-													<Accordion.Root type="single">
-														<Accordion.Item
-															value={`${provider.id}-${contentType.name}-${category.id}`}
+													<div class="ml-4">
+														<button
+															class="w-full text-left text-md font-medium pl-4 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+															onclick={() =>
+																handleCategoryClick(provider.id!, contentType.name, category.id)}
 														>
-															<Accordion.Trigger class="text-md font-medium pl-4">
-																{category.name} ({category.channels.length})
-															</Accordion.Trigger>
-															<Accordion.Content>
-																<div class="space-y-2 mt-2 pl-8">
-																	<!-- Channel level -->
-																	{#each category.channels as channel}
-																		<button
-																			class="w-full text-left p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 flex items-center space-x-2 {selectedChannel?.id ===
-																			channel.id
-																				? 'bg-indigo-100 dark:bg-indigo-900/30'
-																				: ''}"
-																			onclick={() => {
-																				const providerObj = Array.from(providers.keys()).find(
-																					(p) => p.id === provider.id
-																				);
-																				if (providerObj) handleChannelClick(channel, providerObj);
-																			}}
-																		>
-																			<span class="truncate">{channel.name}</span>
-																		</button>
-																	{/each}
-																</div>
-															</Accordion.Content>
-														</Accordion.Item>
-													</Accordion.Root>
+															{category.name} ({category.channels.length})
+														</button>
+														{#if expandedCategories.has(`${provider.id}-${contentType.name}-${category.id}`)}
+															<div class="space-y-1 pl-8 mt-1">
+																{#each category.channels as channel}
+																	<button
+																		class="w-full text-left p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 flex items-center space-x-2 {selectedChannel?.id ===
+																		channel.id
+																			? 'bg-indigo-100 dark:bg-indigo-900/30'
+																			: ''}"
+																		onclick={() => handleChannelClick(channel, provider)}
+																	>
+																		<span class="truncate">{channel.name}</span>
+																	</button>
+																{/each}
+															</div>
+														{/if}
+													</div>
 												{/each}
 											</div>
-										</Accordion.Content>
-									</Accordion.Item>
-								</Accordion.Root>
-							{/each}
+										{/if}
+									</div>
+								{/each}
+							{:else}
+								<div class="text-center text-muted-foreground p-4">
+									No channels found for this provider
+								</div>
+							{/if}
 						</div>
 					</Accordion.Content>
 				</Accordion.Item>
-			</Accordion.Root>
-		{/each}
-	{:else if channels}
-		<!-- Single provider mode (legacy) -->
-		<div class="space-y-2 mt-2">
-			{#each providerContentTypes as contentType}
-				<Accordion.Root type="single">
-					<Accordion.Item value={contentType.name}>
-						<Accordion.Trigger class="text-lg font-medium">
-							{contentType.name}
-						</Accordion.Trigger>
-						<Accordion.Content>
-							<div class="space-y-2 mt-2">
-								{#each contentType.categories as category}
-									<Accordion.Root type="single">
-										<Accordion.Item value={category.id}>
-											<Accordion.Trigger class="text-md font-medium pl-4">
-												{category.name} ({category.channels.length})
-											</Accordion.Trigger>
-											<Accordion.Content>
-												<div class="space-y-2 mt-2 pl-8">
-													{#each category.channels as channel}
-														<button
-															class="w-full text-left p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 flex items-center space-x-2 {selectedChannel?.id ===
-															channel.id
-																? 'bg-indigo-100 dark:bg-indigo-900/30'
-																: ''}"
-															onclick={() =>
-																currentPlaylist && handleChannelClick(channel, currentPlaylist)}
-														>
-															<span class="truncate">{channel.name}</span>
-														</button>
-													{/each}
-												</div>
-											</Accordion.Content>
-										</Accordion.Item>
-									</Accordion.Root>
-								{/each}
-							</div>
-						</Accordion.Content>
-					</Accordion.Item>
-				</Accordion.Root>
 			{/each}
-		</div>
+		</Accordion.Root>
 	{:else}
-		<p class="text-center text-muted-foreground">No channels available</p>
+		<p class="text-center text-muted-foreground">No providers available</p>
 	{/if}
 </div>
