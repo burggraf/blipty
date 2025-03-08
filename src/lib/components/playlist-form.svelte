@@ -4,6 +4,10 @@
 	import * as Card from '$lib/components/ui/card';
 	import { addPlaylist } from '$lib/commands';
 
+	const { onSaved } = $props<{
+		onSaved?: () => void;
+	}>();
+
 	let name = $state('');
 	let serverUrl = $state('');
 	let username = $state('');
@@ -34,8 +38,13 @@
 				is_active: true
 			});
 
-			// Refresh the page to show updated provider list
-			window.location.reload();
+			// Call the onSaved callback instead of reloading the page
+			if (onSaved) {
+				onSaved();
+			} else {
+				// Fall back to page reload if no callback provided (for backward compatibility)
+				window.location.reload();
+			}
 		} catch (e: any) {
 			error = e.message || 'Failed to add provider';
 		} finally {

@@ -31,7 +31,7 @@
 	const { playlist_id } = $props<{ playlist_id: number }>();
 	let currentPlaylist = $state<Playlist | null>(null);
 	let selectedChannelValue = $state<Channel | null>(null);
-	let dbPath = '';
+	let dbPath = $state('');
 
 	onMount(async () => {
 		try {
@@ -226,9 +226,11 @@
 	{/if}
 </main>
 
+<!--
 <div
 	class="debug-info"
 	style="position: fixed; bottom: 0; left: 0; background: rgba(0,0,0,0.8); color: white; padding: 8px; font-size: 12px; max-width: 100%; word-break: break-all;"
 >
 	DB Path: {dbPath}
 </div>
+-->
