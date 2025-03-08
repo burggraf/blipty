@@ -100,8 +100,20 @@
 
 				if (!acc.has(contentType)) {
 					acc.set(contentType, new Map());
+					// Add favorites category for this content type
+					acc.get(contentType)!.set('favorites', {
+						id: 'favorites',
+						name: 'Favorites',
+						channels: []
+					});
 				}
 				const contentTypeMap = acc.get(contentType)!;
+
+				// If this channel is a favorite, add it to the favorites category
+				if (favorites.has(channel.stream_id)) {
+					const favoritesCategory = contentTypeMap.get('favorites')!;
+					favoritesCategory.channels.push(channel);
+				}
 
 				if (!contentTypeMap.has(categoryId)) {
 					contentTypeMap.set(categoryId, {
@@ -118,15 +130,27 @@
 		);
 
 		return Array.from(channelsByContentType.entries())
-			.map(([contentType, categories]) => ({
-				name: contentType.charAt(0).toUpperCase() + contentType.slice(1),
-				categories: Array.from(categories.values())
-					.sort((a, b) => a.name.localeCompare(b.name))
-					.map((category) => ({
+			.map(([contentType, categories]) => {
+				const categoriesArray = Array.from(categories.values());
+				// Filter out empty favorites categories
+				const nonEmptyCategories = categoriesArray.filter(
+					(cat) => cat.id !== 'favorites' || cat.channels.length > 0
+				);
+				// Sort all categories except favorites
+				const sortedCategories = nonEmptyCategories.sort((a, b) => {
+					if (a.id === 'favorites') return -1;
+					if (b.id === 'favorites') return 1;
+					return a.name.localeCompare(b.name);
+				});
+
+				return {
+					name: contentType.charAt(0).toUpperCase() + contentType.slice(1),
+					categories: sortedCategories.map((category) => ({
 						...category,
 						channels: category.channels.sort((a, b) => a.name.localeCompare(b.name))
 					}))
-			}))
+				};
+			})
 			.sort((a, b) => a.name.localeCompare(b.name));
 	}
 
