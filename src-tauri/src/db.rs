@@ -76,6 +76,7 @@ pub fn init_db(conn: &Connection) -> SqliteResult<()> {
     migrations::create_vod_metadata_table(conn)?;
     migrations::create_selected_channel_table(conn)?;
     migrations::create_channels_table(conn)?;
+    migrations::create_favorites_table(conn)?;
 
     println!("Database schema initialized successfully");
 

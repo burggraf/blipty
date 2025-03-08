@@ -156,3 +156,19 @@ pub fn create_channels_table(conn: &Connection) -> SqliteResult<()> {
 
     Ok(())
 }
+
+pub fn create_favorites_table(conn: &Connection) -> SqliteResult<()> {
+    let create_favorites_table = "CREATE TABLE IF NOT EXISTS favorites (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        playlist_id INTEGER NOT NULL,
+        stream_id TEXT NOT NULL,
+        content_type TEXT NOT NULL,
+        created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+        UNIQUE(playlist_id, stream_id),
+        FOREIGN KEY(playlist_id) REFERENCES playlists(id) ON DELETE CASCADE
+    )";
+
+    conn.execute(create_favorites_table, [])?;
+    println!("Favorites table created successfully");
+    Ok(())
+}
