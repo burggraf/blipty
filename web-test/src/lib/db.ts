@@ -4,6 +4,7 @@ export class Database {
     private static instance: Database;
     private db: any = null;
     private initialized = false;
+    private dbName = 'blipty.db';
 
     private constructor() { }
 
@@ -23,7 +24,7 @@ export class Database {
             });
 
             // Try to load existing database from IndexedDB
-            const existingData = await this.loadFromIndexedDB('blipty.db');
+            const existingData = await this.loadFromIndexedDB(this.dbName);
 
             // Create new database or load existing one
             this.db = existingData
@@ -34,8 +35,7 @@ export class Database {
             if (!existingData) {
                 await this.initSchema();
                 // Save the initial database
-                const data = this.db.export();
-                await this.persistToIndexedDB('blipty.db', data);
+                await this.saveToIndexedDB();
             }
 
             this.initialized = true;
@@ -119,6 +119,11 @@ export class Database {
         }
     }
 
+    private async saveToIndexedDB() {
+        const data = this.db.export();
+        await this.persistToIndexedDB(this.dbName, data);
+    }
+
     private async persistToIndexedDB(dbName: string, data: Uint8Array) {
         return new Promise((resolve, reject) => {
             const request = indexedDB.open(dbName, 1);
@@ -132,6 +137,11 @@ export class Database {
                 const putRequest = store.put(data, 'db');
                 putRequest.onsuccess = () => resolve(undefined);
                 putRequest.onerror = () => reject(putRequest.error);
+
+                // Wait for the transaction to complete
+                tx.oncomplete = () => {
+                    db.close();
+                };
             };
 
             request.onupgradeneeded = (event) => {
@@ -152,7 +162,11 @@ export class Database {
                 const store = tx.objectStore('sqlite');
 
                 const getRequest = store.get('db');
-                getRequest.onsuccess = () => resolve(getRequest.result || null);
+                getRequest.onsuccess = () => {
+                    const result = getRequest.result;
+                    db.close();
+                    resolve(result || null);
+                };
                 getRequest.onerror = () => reject(getRequest.error);
             };
 
@@ -177,10 +191,14 @@ export class Database {
         const stmt = this.db.prepare(sql, params);
         stmt.run();
         stmt.free();
+        // Persist changes after each write operation
+        await this.saveToIndexedDB();
     }
 
     async close(): Promise<void> {
         if (this.db) {
+            // Save any pending changes before closing
+            await this.saveToIndexedDB();
             this.db.close();
         }
     }
