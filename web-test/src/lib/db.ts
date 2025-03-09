@@ -164,13 +164,18 @@ export class Database {
     }
 
     async query(sql: string, params: any[] = []): Promise<any[]> {
-        const stmt = this.db.prepare(sql);
-        return stmt.getAsObject(params);
+        const stmt = this.db.prepare(sql, params);
+        const rows = [];
+        while (stmt.step()) {
+            rows.push(stmt.getAsObject());
+        }
+        stmt.free();
+        return rows;
     }
 
     async exec(sql: string, params: any[] = []): Promise<void> {
-        const stmt = this.db.prepare(sql);
-        stmt.run(params);
+        const stmt = this.db.prepare(sql, params);
+        stmt.run();
         stmt.free();
     }
 

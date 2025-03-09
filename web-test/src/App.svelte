@@ -4,6 +4,7 @@
 	import Counter from './lib/Counter.svelte';
 	import VideoPlayer from './components/VideoPlayer.svelte';
 	import DatabaseTest from './components/DatabaseTest.svelte';
+	import SqlQuery from './components/SqlQuery.svelte';
 	import { onMount } from 'svelte';
 	import { initDatabase, db } from './lib/stores';
 
@@ -44,6 +45,8 @@
 	{/if}
 
 	<DatabaseTest />
+
+	<SqlQuery />
 
 	<div class="card">
 		<Counter />

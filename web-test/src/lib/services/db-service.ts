@@ -16,6 +16,10 @@ export interface Playlist {
 export class DbService {
     constructor(private db: Database) { }
 
+    async query(sql: string, params: any[] = []): Promise<any[]> {
+        return this.db.query(sql, params);
+    }
+
     async addPlaylist(playlist: Omit<Playlist, 'id' | 'created_at'>): Promise<number> {
         const now = new Date().toISOString();
         const sql = `
