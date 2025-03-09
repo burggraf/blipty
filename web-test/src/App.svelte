@@ -3,6 +3,9 @@
 	import viteLogo from '/vite.svg';
 	import Counter from './lib/Counter.svelte';
 	import VideoPlayer from './components/VideoPlayer.svelte';
+	import DatabaseTest from './components/DatabaseTest.svelte';
+	import { onMount } from 'svelte';
+	import { initDatabase, db } from './lib/stores';
 
 	// Read the sample URLs from the parent directory
 	const sampleUrls = `
@@ -11,6 +14,16 @@
 		.split('\n');
 
 	let selectedUrl = $state(sampleUrls[0]);
+	let dbInitError = $state('');
+
+	onMount(async () => {
+		try {
+			await initDatabase();
+		} catch (err) {
+			dbInitError = err instanceof Error ? err.message : 'Failed to initialize database';
+			console.error('Database initialization error:', err);
+		}
+	});
 </script>
 
 <main>
@@ -23,6 +36,14 @@
 		</a>
 	</div>
 	<h1>Vite + Svelte</h1>
+
+	{#if dbInitError}
+		<div class="error">
+			Database Error: {dbInitError}
+		</div>
+	{/if}
+
+	<DatabaseTest />
 
 	<div class="card">
 		<Counter />
@@ -83,5 +104,13 @@
 		width: 100%;
 		aspect-ratio: 16/9;
 		background: #000;
+	}
+
+	.error {
+		color: red;
+		padding: 1rem;
+		margin: 1rem 0;
+		border: 1px solid red;
+		border-radius: 4px;
 	}
 </style>
