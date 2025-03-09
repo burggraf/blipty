@@ -1,0 +1,75 @@
+{
+  "lockfileVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "web-test",
+      "dependencies": {
+        "@types/video.js": "^7.3.58",
+        "mpegts.js": "^1.8.0",
+        "video.js": "^8.21.0",
+      },
+      "devDependencies": {
+        "@tsconfig/svelte": "^5.0.4",
+        "@types/node": "^22.13.10",
+        "typescript": "^5.8.2",
+      },
+    },
+  },
+  "packages": {
+    "@babel/runtime": ["@babel/runtime@7.26.9", "", { "dependencies": { "regenerator-runtime": "^0.14.0" } }, "sha512-aA63XwOkcl4xxQa3HjPMqOP6LiK0ZDv3mUPYEFXkpHbaFjtGggE1A61FjFzJnB+p7/oy2gA8E+rcBNl/zC1tMg=="],
+
+    "@tsconfig/svelte": ["@tsconfig/svelte@5.0.4", "", {}, "sha512-BV9NplVgLmSi4mwKzD8BD/NQ8erOY/nUE/GpgWe2ckx+wIQF5RyRirn/QsSSCPeulVpc3RA/iJt6DpfTIZps0Q=="],
+
+    "@types/node": ["@types/node@22.13.10", "", { "dependencies": { "undici-types": "~6.20.0" } }, "sha512-I6LPUvlRH+O6VRUqYOcMudhaIdUVWfsjnZavnsraHvpBwaEyMN29ry+0UVJhImYL16xsscu0aske3yA+uPOWfw=="],
+
+    "@types/video.js": ["@types/video.js@7.3.58", "", {}, "sha512-1CQjuSrgbv1/dhmcfQ83eVyYbvGyqhTvb2Opxr0QCV+iJ4J6/J+XWQ3Om59WiwCd1MN3rDUHasx5XRrpUtewYQ=="],
+
+    "@videojs/http-streaming": ["@videojs/http-streaming@3.17.0", "", { "dependencies": { "@babel/runtime": "^7.12.5", "@videojs/vhs-utils": "^4.1.1", "aes-decrypter": "^4.0.2", "global": "^4.4.0", "m3u8-parser": "^7.2.0", "mpd-parser": "^1.3.1", "mux.js": "7.1.0", "video.js": "^7 || ^8" }, "peerDependencies": { "video.js": "^8.19.0" } }, "sha512-Ch1P3tvvIEezeZXyK11UfWgp4cWKX4vIhZ30baN/lRinqdbakZ5hiAI3pGjRy3d+q/Epyc8Csz5xMdKNNGYpcw=="],
+
+    "@videojs/vhs-utils": ["@videojs/vhs-utils@4.1.1", "", { "dependencies": { "@babel/runtime": "^7.12.5", "global": "^4.4.0" } }, "sha512-5iLX6sR2ownbv4Mtejw6Ax+naosGvoT9kY+gcuHzANyUZZ+4NpeNdKMUhb6ag0acYej1Y7cmr/F2+4PrggMiVA=="],
+
+    "@videojs/xhr": ["@videojs/xhr@2.7.0", "", { "dependencies": { "@babel/runtime": "^7.5.5", "global": "~4.4.0", "is-function": "^1.0.1" } }, "sha512-giab+EVRanChIupZK7gXjHy90y3nncA2phIOyG3Ne5fvpiMJzvqYwiTOnEVW2S4CoYcuKJkomat7bMXA/UoUZQ=="],
+
+    "@xmldom/xmldom": ["@xmldom/xmldom@0.8.10", "", {}, "sha512-2WALfTl4xo2SkGCYRt6rDTFfk9R1czmBvUQy12gK2KuRKIpWEhcbbzy8EZXtz/jkRqHX8bFEc6FC1HjX4TUWYw=="],
+
+    "aes-decrypter": ["aes-decrypter@4.0.2", "", { "dependencies": { "@babel/runtime": "^7.12.5", "@videojs/vhs-utils": "^4.1.1", "global": "^4.4.0", "pkcs7": "^1.0.4" } }, "sha512-lc+/9s6iJvuaRe5qDlMTpCFjnwpkeOXp8qP3oiZ5jsj1MRg+SBVUmmICrhxHvc8OELSmc+fEyyxAuppY6hrWzw=="],
+
+    "dom-walk": ["dom-walk@0.1.2", "", {}, "sha512-6QvTW9mrGeIegrFXdtQi9pk7O/nSK6lSdXW2eqUspN5LWD7UTji2Fqw5V2YLjBpHEoU9Xl/eUWNpDeZvoyOv2w=="],
+
+    "es6-promise": ["es6-promise@4.2.8", "", {}, "sha512-HJDGx5daxeIvxdBxvG2cb9g4tEvwIk3i8+nhX0yGrYmZUzbkdg8QbDevheDB8gd0//uPj4c1EQua8Q+MViT0/w=="],
+
+    "global": ["global@4.4.0", "", { "dependencies": { "min-document": "^2.19.0", "process": "^0.11.10" } }, "sha512-wv/LAoHdRE3BeTGz53FAamhGlPLhlssK45usmGFThIi4XqnBmjKQ16u+RNbP7WvigRZDxUsM0J3gcQ5yicaL0w=="],
+
+    "is-function": ["is-function@1.0.2", "", {}, "sha512-lw7DUp0aWXYg+CBCN+JKkcE0Q2RayZnSvnZBlwgxHBQhqt5pZNVy4Ri7H9GmmXkdu7LUthszM+Tor1u/2iBcpQ=="],
+
+    "m3u8-parser": ["m3u8-parser@7.2.0", "", { "dependencies": { "@babel/runtime": "^7.12.5", "@videojs/vhs-utils": "^4.1.1", "global": "^4.4.0" } }, "sha512-CRatFqpjVtMiMaKXxNvuI3I++vUumIXVVT/JpCpdU/FynV/ceVw1qpPyyBNindL+JlPMSesx+WX1QJaZEJSaMQ=="],
+
+    "min-document": ["min-document@2.19.0", "", { "dependencies": { "dom-walk": "^0.1.0" } }, "sha512-9Wy1B3m3f66bPPmU5hdA4DR4PB2OfDU/+GS3yAB7IQozE3tqXaVv2zOjgla7MEGSRv95+ILmOuvhLkOK6wJtCQ=="],
+
+    "mpd-parser": ["mpd-parser@1.3.1", "", { "dependencies": { "@babel/runtime": "^7.12.5", "@videojs/vhs-utils": "^4.0.0", "@xmldom/xmldom": "^0.8.3", "global": "^4.4.0" }, "bin": { "mpd-to-m3u8-json": "bin/parse.js" } }, "sha512-1FuyEWI5k2HcmhS1HkKnUAQV7yFPfXPht2DnRRGtoiiAAW+ESTbtEXIDpRkwdU+XyrQuwrIym7UkoPKsZ0SyFw=="],
+
+    "mpegts.js": ["mpegts.js@1.8.0", "", { "dependencies": { "es6-promise": "^4.2.5", "webworkify-webpack": "github:xqq/webworkify-webpack" } }, "sha512-ZtujqtmTjWgcDDkoOnLvrOKUTO/MKgLHM432zGDI8oPaJ0S+ebPxg1nEpDpLw6I7KmV/GZgUIrfbWi3qqEircg=="],
+
+    "mux.js": ["mux.js@7.1.0", "", { "dependencies": { "@babel/runtime": "^7.11.2", "global": "^4.4.0" }, "bin": { "muxjs-transmux": "bin/transmux.js" } }, "sha512-NTxawK/BBELJrYsZThEulyUMDVlLizKdxyAsMuzoCD1eFj97BVaA8D/CvKsKu6FOLYkFojN5CbM9h++ZTZtknA=="],
+
+    "pkcs7": ["pkcs7@1.0.4", "", { "dependencies": { "@babel/runtime": "^7.5.5" }, "bin": "bin/cli.js" }, "sha512-afRERtHn54AlwaF2/+LFszyAANTCggGilmcmILUzEjvs3XgFZT+xE6+QWQcAGmu4xajy+Xtj7acLOPdx5/eXWQ=="],
+
+    "process": ["process@0.11.10", "", {}, "sha512-cdGef/drWFoydD1JsMzuFf8100nZl+GT+yacc2bEced5f9Rjk4z+WtFUTBu9PhOi9j/jfmBPu0mMEY4wIdAF8A=="],
+
+    "regenerator-runtime": ["regenerator-runtime@0.14.1", "", {}, "sha512-dYnhHh0nJoMfnkZs6GmmhFknAGRrLznOu5nc9ML+EJxGvrx6H7teuevqVqCuPcPK//3eDrrjQhehXVx9cnkGdw=="],
+
+    "typescript": ["typescript@5.8.2", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-aJn6wq13/afZp/jT9QZmwEjDqqvSGp1VT5GVg+f/t6/oVyrgXM6BY1h9BRh/O5p3PlUPAe+WuiEZOmb/49RqoQ=="],
+
+    "undici-types": ["undici-types@6.20.0", "", {}, "sha512-Ny6QZ2Nju20vw1SRHe3d9jVu6gJ+4e3+MMpqu7pqE5HT6WsTSlce++GQmK5UXS8mzV8DSYHrQH+Xrf2jVcuKNg=="],
+
+    "video.js": ["video.js@8.21.0", "", { "dependencies": { "@babel/runtime": "^7.12.5", "@videojs/http-streaming": "^3.16.2", "@videojs/vhs-utils": "^4.1.1", "@videojs/xhr": "2.7.0", "aes-decrypter": "^4.0.2", "global": "4.4.0", "m3u8-parser": "^7.2.0", "mpd-parser": "^1.3.1", "mux.js": "^7.0.1", "videojs-contrib-quality-levels": "4.1.0", "videojs-font": "4.2.0", "videojs-vtt.js": "0.15.5" } }, "sha512-zcwerRb257QAuWfi8NH9yEX7vrGKFthjfcONmOQ4lxFRpDAbAi+u5LAjCjMWqhJda6zEmxkgdDpOMW3Y21QpXA=="],
+
+    "videojs-contrib-quality-levels": ["videojs-contrib-quality-levels@4.1.0", "", { "dependencies": { "global": "^4.4.0" }, "peerDependencies": { "video.js": "^8" } }, "sha512-TfrXJJg1Bv4t6TOCMEVMwF/CoS8iENYsWNKip8zfhB5kTcegiFYezEA0eHAJPU64ZC8NQbxQgOwAsYU8VXbOWA=="],
+
+    "videojs-font": ["videojs-font@4.2.0", "", {}, "sha512-YPq+wiKoGy2/M7ccjmlvwi58z2xsykkkfNMyIg4xb7EZQQNwB71hcSsB3o75CqQV7/y5lXkXhI/rsGAS7jfEmQ=="],
+
+    "videojs-vtt.js": ["videojs-vtt.js@0.15.5", "", { "dependencies": { "global": "^4.3.1" } }, "sha512-yZbBxvA7QMYn15Lr/ZfhhLPrNpI/RmCSCqgIff57GC2gIrV5YfyzLfLyZMj0NnZSAz8syB4N0nHXpZg9MyrMOQ=="],
+
+    "webworkify-webpack": ["webworkify-webpack@git+ssh://git@github.com/xqq/webworkify-webpack.git#24d1e719b4a6cac37a518b2bb10fe124527ef4ef", {}, "24d1e719b4a6cac37a518b2bb10fe124527ef4ef"],
+  }
+}
