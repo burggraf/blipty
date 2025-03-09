@@ -10,7 +10,7 @@
         "sourceMap": true,
         "strict": true,
         "moduleResolution": "bundler",
-        "types": ["@tauri-apps/api"]
+        "types": ["@tauri-apps/api", "svelte"]
     },
     "include": [
         "src/**/*",
